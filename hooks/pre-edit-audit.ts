@@ -1,12 +1,14 @@
 #!/usr/bin/env bun
-// hooks/pre-edit-audit.ts — Argon v9.0 PreToolUse Deterministic Gate
-// Proof-Carrying Audit (PCA) with Lexical Anchoring
+// hooks/pre-edit-audit.ts — Argon v9.2 PreToolUse Deterministic Gate
+// Multi-Target PCA, Proximity Drift Self-Healing, Reverse Tail Transcript Reader & OS Temp Staging
 import * as fs from "node:fs";
 import * as path from "node:path";
+import * as os from "node:os";
+import * as crypto from "node:crypto";
 
 interface HookPayload {
-  // Common & Antigravity fields
   conversationId?: string;
+  session_id?: string;
   stepIdx?: number;
   transcriptPath?: string;
   transcript_path?: string;
@@ -16,7 +18,6 @@ interface HookPayload {
     name: string;
     args: Record<string, unknown>;
   };
-  // Claude Code / Standard fields
   tool_name?: string;
   tool_input?: Record<string, unknown>;
   assistant_message?: string;
@@ -28,6 +29,7 @@ interface EvidenceAnchor {
   line: number;
   expectedToken: string;
   isNewFile: boolean;
+  isMediaAsset: boolean;
 }
 
 const EDIT_TOOLS = new Set([
@@ -42,12 +44,59 @@ const EDIT_TOOLS = new Set([
   "Edit",
 ]);
 
-function respond(allowed: boolean, reason?: string, fix?: string): never {
-  const isAntigravity = Boolean(process.env.ANTIGRAVITY_APP_DIR || process.env.AGY_SESSION_ID);
+const SHELL_TOOLS = new Set([
+  "run_command",
+  "bash",
+  "Bash",
+  "execute_command",
+  "run_terminal_cmd",
+]);
+
+const MEDIA_EXTENSIONS = new Set([
+  ".mp4", ".mov", ".mkv", ".webm", ".avi",
+  ".wav", ".mp3", ".flac", ".ogg", ".aac", ".m4a",
+  ".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp",
+  ".pdf", ".zip", ".tar", ".gz", ".wasm",
+]);
+
+const LOW_ENTROPY_TOKENS = new Set([
+  "const", "let", "var", "function", "return", "import", "export",
+  "default", "class", "interface", "type", "async", "await", "true",
+  "false", "null", "undefined", "void", "this", "super", "if", "else",
+  "for", "while", "switch", "case", "break", "continue", "try", "catch",
+  "public", "private", "protected", "static", "readonly", "from",
+]);
+
+// Domain-locked matrix validation: Software (ENG/SRF/SYS/PIP x JCE/CRF/DNS/MIN) or Media (DOC/PED/KEY/SHRT x BST/KYN/CIN/RAW)
+const VALID_MATRIX_REGEX =
+  /MATRIX:\s*(?:(?:ENG|SRF|SYS|PIP)\s*x\s*(?:JCE|CRF|DNS|MIN)|(?:DOC|PED|KEY|SHRT)\s*x\s*(?:BST|KYN|CIN|RAW))\b/i;
+
+const MODULE_REGEX = /\b(?:MODULE:\s*)?M(?:1[01]|[1-9])\b/i;
+const MAX_SELF_HEAL_DRIFT = 150;
+
+function sleepSync(ms: number): void {
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  } catch {
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+      // busy wait fallback
+    }
+  }
+}
+
+function respond(allowed: boolean, reason?: string, fix?: string, advisory?: string): never {
+  const isAntigravity = Boolean(
+    process.env.ANTIGRAVITY_APP_DIR || process.env.AGY_SESSION_ID
+  );
 
   if (allowed) {
     if (isAntigravity) {
-      process.stdout.write(JSON.stringify({ decision: "allow" }));
+      const payloadOut: Record<string, string> = { decision: "allow" };
+      if (advisory) payloadOut.reason = advisory;
+      process.stdout.write(JSON.stringify(payloadOut));
+    } else if (advisory) {
+      process.stderr.write(`\n[ARGON-PCA-INFO] ${advisory}\n`);
     }
     process.exit(0);
   }
@@ -68,81 +117,290 @@ function respond(allowed: boolean, reason?: string, fix?: string): never {
     process.exit(0);
   } else {
     process.stderr.write(`\n${errMessage}\n`);
-    // Exit code 2 in Claude Code / Unix toolgates blocks execution and feeds stderr to LLM
     process.exit(2);
   }
 }
 
-function extractLastAssistantText(payload: HookPayload): string {
-  if (payload.assistant_message) return payload.assistant_message;
-
-  const transcriptPath = payload.transcriptPath || payload.transcript_path;
-  if (transcriptPath && fs.existsSync(transcriptPath)) {
-    try {
-      const content = fs.readFileSync(transcriptPath, "utf-8").trim();
-      const lines = content.split("\n");
-      for (let i = lines.length - 1; i >= 0; i--) {
-        const line = lines[i].trim();
-        if (!line) continue;
-        try {
-          const entry = JSON.parse(line);
-          // Antigravity format
-          if (entry.source === "MODEL" || entry.type === "PLANNER_RESPONSE") {
-            if (typeof entry.content === "string") return entry.content;
-            if (typeof entry.thinking === "string") return entry.thinking + "\n" + (entry.content || "");
-          }
-          // Claude Code / OpenAI format
-          if (entry.role === "assistant" || entry.type === "assistant") {
-            const msg = entry.message?.content ?? entry.content;
-            if (typeof msg === "string") return msg;
-            if (Array.isArray(msg)) {
-              return msg
-                .filter((c: { type?: string; text?: string }) => c.type === "text" || !c.type)
-                .map((c: { text?: string }) => c.text ?? "")
-                .join("\n");
-            }
-          }
-        } catch {
-          continue;
-        }
-      }
-    } catch {
-      // Fallback if transcript reading fails
-    }
+/**
+ * Reads only the tail (last 128KB) of the transcript file in O(1) time.
+ */
+function readTranscriptTail(filePath: string, maxBytes = 131072): string {
+  const stat = fs.statSync(filePath);
+  if (stat.size === 0) return "";
+  const readSize = Math.min(maxBytes, stat.size);
+  const startOffset = stat.size - readSize;
+  const fd = fs.openSync(filePath, "r");
+  try {
+    const buf = Buffer.alloc(readSize);
+    fs.readSync(fd, buf, 0, readSize, startOffset);
+    return buf.toString("utf-8");
+  } finally {
+    fs.closeSync(fd);
   }
-  return "";
 }
 
 /**
- * Extracts evidence anchors from the audit body:
- *   EVIDENCE: [src/core/engine.ts:45["executeTick"], src/new/module.ts:0["NEW_FILE"]]
- *   or bullet points: - src/core/engine.ts:45["executeTick"]
+ * Extracts assistant text strictly from the CURRENT turn with a 3x50ms retry cushion for disk flush lag.
  */
+function extractCurrentTurnAssistantText(payload: HookPayload): {
+  text: string;
+  transcriptAvailable: boolean;
+} {
+  if (typeof payload.assistant_message === "string" && payload.assistant_message.trim()) {
+    return { text: payload.assistant_message, transcriptAvailable: true };
+  }
+
+  const transcriptPath = payload.transcriptPath || payload.transcript_path;
+  if (!transcriptPath) {
+    return { text: "", transcriptAvailable: false };
+  }
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (fs.existsSync(transcriptPath)) {
+      try {
+        const tailContent = readTranscriptTail(transcriptPath).trim();
+        if (tailContent) {
+          const lines = tailContent.split("\n");
+          const collectedChunks: string[] = [];
+
+          for (let i = lines.length - 1; i >= 0; i--) {
+            const line = lines[i].trim();
+            if (!line) continue;
+            try {
+              const entry = JSON.parse(line);
+              if (
+                entry.source === "USER" ||
+                entry.role === "user" ||
+                entry.type === "USER_MESSAGE" ||
+                entry.type === "user"
+              ) {
+                break;
+              }
+
+              if (entry.source === "MODEL" || entry.type === "PLANNER_RESPONSE") {
+                const chunk = [entry.thinking, entry.content].filter(Boolean).join("\n");
+                if (chunk) collectedChunks.push(chunk);
+              } else if (entry.role === "assistant" || entry.type === "assistant") {
+                const msg = entry.message?.content ?? entry.content;
+                if (typeof msg === "string") {
+                  collectedChunks.push(msg);
+                } else if (Array.isArray(msg)) {
+                  const textPart = msg
+                    .filter(
+                      (c: { type?: string; text?: string }) =>
+                        c.type === "text" || c.type === "thinking" || !c.type
+                    )
+                    .map((c: { text?: string; thinking?: string }) => c.text ?? c.thinking ?? "")
+                    .join("\n");
+                  if (textPart) collectedChunks.push(textPart);
+                }
+              }
+            } catch {
+              continue;
+            }
+          }
+
+          const joined = collectedChunks.reverse().join("\n").trim();
+          if (joined) {
+            return { text: joined, transcriptAvailable: true };
+          }
+        }
+      } catch {
+        // Retry after cushion
+      }
+    }
+    if (attempt < 2) sleepSync(50);
+  }
+
+  return {
+    text: "",
+    transcriptAvailable: Boolean(transcriptPath && fs.existsSync(transcriptPath)),
+  };
+}
+
 function parseEvidenceAnchors(auditContent: string): EvidenceAnchor[] {
   const anchorRegex = /([^\s,\[\]:]+):(\d+)\["([^"]+)"\]/g;
   const anchors: EvidenceAnchor[] = [];
   let match: RegExpExecArray | null;
 
   while ((match = anchorRegex.exec(auditContent)) !== null) {
+    const filePath = match[1];
+    const line = parseInt(match[2], 10);
+    const expectedToken = match[3];
+    const ext = path.extname(filePath).toLowerCase();
+
     anchors.push({
       raw: match[0],
-      filePath: match[1],
-      line: parseInt(match[2], 10),
-      expectedToken: match[3],
-      isNewFile: match[2] === "0" && match[3] === "NEW_FILE",
+      filePath,
+      line,
+      expectedToken,
+      isNewFile: line === 0 && expectedToken === "NEW_FILE",
+      isMediaAsset:
+        (line === 0 && expectedToken === "MEDIA_ASSET") || MEDIA_EXTENSIONS.has(ext),
     });
   }
   return anchors;
 }
 
-function resolveTargetFile(payload: HookPayload): string | undefined {
+/**
+ * Extracts all target file paths across both scalar and batch/multi-edit tool schemas.
+ */
+function resolveTargetFiles(payload: HookPayload): string[] {
   const args = payload.toolCall?.args || payload.tool_input || {};
-  return (args.Path ||
-    args.target_file ||
-    args.TargetFile ||
-    args.file_path ||
-    args.path ||
-    args.targetFile) as string | undefined;
+  const targets = new Set<string>();
+
+  const scalarKeys = [
+    "Path",
+    "target_file",
+    "TargetFile",
+    "file_path",
+    "filePath",
+    "AbsolutePath",
+    "path",
+    "targetFile",
+  ];
+
+  for (const key of scalarKeys) {
+    const val = args[key];
+    if (typeof val === "string" && val.trim()) {
+      targets.add(val.trim());
+    }
+  }
+
+  const arrayKeys = ["edits", "files", "replacements", "changes", "chunks"];
+  for (const arrKey of arrayKeys) {
+    const list = args[arrKey];
+    if (Array.isArray(list)) {
+      for (const item of list) {
+        if (typeof item === "string" && item.trim()) {
+          targets.add(item.trim());
+        } else if (item && typeof item === "object") {
+          const obj = item as Record<string, unknown>;
+          for (const key of scalarKeys) {
+            const val = obj[key];
+            if (typeof val === "string" && val.trim()) {
+              targets.add(val.trim());
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return Array.from(targets);
+}
+
+/**
+ * Validates binary magic bytes for known media/binary formats.
+ */
+function verifyMediaMagicBytes(buf: Buffer, ext: string): boolean {
+  if (buf.length < 4) return false;
+  const ascii4 = buf.subarray(0, 4).toString("ascii");
+  const ascii8 = buf.subarray(0, Math.min(8, buf.length)).toString("ascii");
+
+  if (ext === ".mp4" || ext === ".mov" || ext === ".m4a") {
+    return buf.includes(Buffer.from("ftyp")) || buf.includes(Buffer.from("moov"));
+  }
+  if (ext === ".wav" || ext === ".avi" || ext === ".webp") {
+    return ascii4 === "RIFF";
+  }
+  if (ext === ".png") {
+    return buf[0] === 0x89 && ascii4.slice(1) === "PNG";
+  }
+  if (ext === ".jpg" || ext === ".jpeg") {
+    return buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+  }
+  if (ext === ".gif") {
+    return ascii4 === "GIF8";
+  }
+  if (ext === ".flac") {
+    return ascii4 === "fLaC";
+  }
+  if (ext === ".ogg") {
+    return ascii4 === "OggS";
+  }
+  if (ext === ".pdf") {
+    return ascii4 === "%PDF";
+  }
+  if (ext === ".mkv" || ext === ".webm") {
+    return buf[0] === 0x1a && buf[1] === 0x45 && buf[2] === 0xdf && buf[3] === 0xa3;
+  }
+  if (ext === ".mp3" || ext === ".aac") {
+    return ascii8.startsWith("ID3") || (buf[0] === 0xff && (buf[1] & 0xe0) === 0xe0);
+  }
+  return true;
+}
+
+/**
+ * Blocks shell redirections or inline interpreter scripts writing directly to source code files.
+ * Benign commands (e.g., `npm test > results.json`, `git status`, `ffprobe`) pass freely without <system_audit>.
+ */
+function inspectShellBypass(payload: HookPayload): void {
+  const args = payload.toolCall?.args || payload.tool_input || {};
+  const cmd = String(
+    args.command || args.CommandLine || args.cmd || args.script || ""
+  ).trim();
+  if (!cmd) return;
+
+  const sourceWriteRedirectRegex =
+    /(?:>|>>|\btee\s+|\bsed\s+-i|\bOut-File\b|\bSet-Content\b|\bAdd-Content\b)[^|;&]*?\.(ts|tsx|js|jsx|py|rs|go)\b/i;
+
+  const inlineScriptWriteRegex =
+    /\b(?:python3?|node|bun)\s+-(?:c|e)\s+[\s\S]*?(?:writeFileSync|write_text|\.write\s*\()[\s\S]*?\.(ts|tsx|js|jsx|py|rs|go)\b/i;
+
+  if (sourceWriteRedirectRegex.test(cmd) || inlineScriptWriteRegex.test(cmd)) {
+    respond(
+      false,
+      `Shell source-code mutation bypass detected: "${cmd.slice(0, 100)}"`,
+      "Do not mutate source code files (.ts, .tsx, .js, .jsx, .py, .rs, .go) via terminal redirections or inline scripts. Use dedicated file editing tools with a valid <system_audit>."
+    );
+  }
+}
+
+function getSessionStagingDir(payload: HookPayload, cwd: string): string {
+  const sessionKey =
+    payload.conversationId ||
+    payload.session_id ||
+    process.env.AGY_SESSION_ID ||
+    crypto.createHash("sha256").update(cwd).digest("hex").slice(0, 12);
+  const safeSession = String(sessionKey).replace(/[^a-zA-Z0-9_-]/g, "_");
+  return path.join(os.tmpdir(), "argon-staging", safeSession);
+}
+
+function stageBackupForDiff(payload: HookPayload, cwd: string, targetFile: string): void {
+  try {
+    const absPath = path.isAbsolute(targetFile)
+      ? targetFile
+      : path.resolve(cwd, targetFile);
+    const stagingDir = getSessionStagingDir(payload, cwd);
+    fs.mkdirSync(stagingDir, { recursive: true });
+
+    const hash = crypto
+      .createHash("sha256")
+      .update(path.normalize(absPath).toLowerCase())
+      .digest("hex")
+      .slice(0, 16);
+    const bakPath = path.join(stagingDir, `${hash}.bak`);
+    const metaPath = path.join(stagingDir, `${hash}.meta.json`);
+
+    if (fs.existsSync(absPath)) {
+      fs.copyFileSync(absPath, bakPath);
+      fs.writeFileSync(
+        metaPath,
+        JSON.stringify({ existed: true, absPath, timestamp: Date.now() }),
+        "utf-8"
+      );
+    } else {
+      if (fs.existsSync(bakPath)) fs.unlinkSync(bakPath);
+      fs.writeFileSync(
+        metaPath,
+        JSON.stringify({ existed: false, absPath, timestamp: Date.now() }),
+        "utf-8"
+      );
+    }
+  } catch {
+    // Non-fatal if OS temp dir is inaccessible
+  }
 }
 
 function main() {
@@ -153,9 +411,7 @@ function main() {
     respond(true);
   }
 
-  if (!rawInput.trim()) {
-    respond(true);
-  }
+  if (!rawInput.trim()) respond(true);
 
   let payload: HookPayload;
   try {
@@ -165,48 +421,106 @@ function main() {
   }
 
   const toolName = payload.toolCall?.name || payload.tool_name || "";
+
+  if (SHELL_TOOLS.has(toolName)) {
+    inspectShellBypass(payload);
+    respond(true);
+  }
+
   if (!EDIT_TOOLS.has(toolName)) {
     respond(true);
   }
 
   const cwd = payload.cwd || process.cwd();
-  const assistantText = extractLastAssistantText(payload);
+  const { text: assistantText, transcriptAvailable } =
+    extractCurrentTurnAssistantText(payload);
 
-  // If we couldn't inspect transcript (e.g. initial sandbox or unavailable log), permit execution
-  if (!assistantText) {
-    respond(true);
+  // Fail-closed by default unless ARGON_PERMISSIVE_TRANSCRIPT=1 is set for headless CI
+  if (!transcriptAvailable) {
+    if (process.env.ARGON_PERMISSIVE_TRANSCRIPT === "1") {
+      respond(true);
+    }
+    respond(
+      false,
+      "Unable to verify session transcript or inline assistant_message (fail-closed gate).",
+      "Ensure the host runner provides transcriptPath or assistant_message, or set ARGON_PERMISSIVE_TRANSCRIPT=1 in headless test scripts."
+    );
   }
 
-  // 1. Validate existence of <system_audit>
-  const auditMatch = assistantText.match(/<system_audit>([\s\S]*?)<\/system_audit>/);
+  if (!assistantText.trim()) {
+    respond(
+      false,
+      "Invoked file mutation tool without emitting a <system_audit> block in the current turn.",
+      "Emit a complete <system_audit> block before calling file editing tools."
+    );
+  }
+
+  // 1. Validate <system_audit> block presence
+  const auditMatch = assistantText.match(
+    /<system_audit>([\s\S]*?)<\/system_audit>/
+  );
   if (!auditMatch) {
     respond(
       false,
-      "Attempted file mutation without preceding valid <system_audit> block in current turn.",
-      'Emit a <system_audit> block with RISK, MATRIX, and EVIDENCE: [path:line["exactToken"]] before invoking the tool.'
+      "Attempted file mutation without a preceding <system_audit> block in the current turn.",
+      'Emit a <system_audit> block with RISK, MATRIX, EVIDENCE: [path:line["exactToken"]], and INVARIANT_CHECK.'
     );
   }
 
   const auditBody = auditMatch[1];
 
-  // 2. Validate Risk Tier
-  if (!/RISK:\s*N[012]\b/.test(auditBody)) {
+  // 2. Validate Risk Tier (N0, N1, N2)
+  const riskMatch = auditBody.match(/RISK:\s*(N[012])\b/);
+  if (!riskMatch) {
     respond(
       false,
-      "The <system_audit> block does not declare a valid risk tier (RISK: N0 | N1 | N2).",
-      "Classify architectural risk tier (RISK: N0, N1, or N2) before proceeding."
+      "Missing or invalid RISK tier in <system_audit> (must be N0, N1, or N2).",
+      "Declare `RISK: N0`, `RISK: N1`, or `RISK: N2` inside <system_audit>."
+    );
+  }
+  const riskTier = riskMatch[1];
+
+  // 3. Validate Orthogonal Execution Matrix (Mandatory for N1/N2; validated if present in N0)
+  const hasMatrix = /MATRIX:/i.test(auditBody);
+  if ((riskTier !== "N0" || hasMatrix) && !VALID_MATRIX_REGEX.test(auditBody)) {
+    respond(
+      false,
+      "Missing or invalid domain-locked MATRIX (D x P) in <system_audit>.",
+      "Declare a valid pairing: Software `<ENG|SRF|SYS|PIP> x <JCE|CRF|DNS|MIN>` or Media `<DOC|PED|KEY|SHRT> x <BST|KYN|CIN|RAW>`."
     );
   }
 
-  // 3. Extract and verify physical evidence anchors on disk
+  // 4. Validate Substantive Invariant Check (minimum 3 words & >= 15 characters)
+  const invMatch = auditBody.match(/INVARIANT(?:_CHECK)?:\s*(.+)/i);
+  const invText = invMatch ? invMatch[1].trim() : "";
+  if (invText.length < 15 || invText.split(/\s+/).length < 3) {
+    respond(
+      false,
+      "Missing or superficial INVARIANT_CHECK in <system_audit>.",
+      "Provide a concrete 1-line engineering invariant check (at least 3 words / 15 characters)."
+    );
+  }
+
+  // 5. Extract and verify physical evidence anchors
   const anchors = parseEvidenceAnchors(auditBody);
   if (anchors.length === 0) {
     respond(
       false,
       "No valid evidence anchors found in EVIDENCE: [...].",
-      'Use exact syntax: EVIDENCE: [path/file.ts:42["exactIdentifier"]] or path/new.ts:0["NEW_FILE"].'
+      'Use syntax: EVIDENCE: [path/file.ts:42["exactIdentifier"]] or path/new.ts:0["NEW_FILE"].'
     );
   }
+
+  // 6. Enforce Heavy Module (M1-M11) instantiation on N2 or >3 files
+  if ((riskTier === "N2" || anchors.length > 3) && !MODULE_REGEX.test(auditBody)) {
+    respond(
+      false,
+      `High-complexity task (${riskTier}, ${anchors.length} files) requires an active reasoning module (M1-M11) in <system_audit>.`,
+      "Declare and instantiate at least one module (e.g., `MODULE: M1 Data Chain`, `MODULE: M3 The Ledger`, or `MODULE: M4 Topological Order`) inside <system_audit>."
+    );
+  }
+
+  const driftNotes: string[] = [];
 
   for (const anchor of anchors) {
     const absPath = path.isAbsolute(anchor.filePath)
@@ -219,7 +533,7 @@ function main() {
         respond(
           false,
           `Declared ${anchor.filePath}:0["NEW_FILE"], but the file ALREADY EXISTS on disk.`,
-          "Read the existing file first and cite a real line as evidence."
+          "Read the existing file first and cite a real line and identifier token as evidence."
         );
       }
       continue;
@@ -228,37 +542,123 @@ function main() {
     if (!exists) {
       respond(
         false,
-        `File cited in evidence does not exist: ${anchor.filePath}`,
-        "Verify the actual path using file reading/search tools before auditing."
+        `File cited in EVIDENCE does not exist on disk: ${anchor.filePath}`,
+        "Verify the file path before auditing."
+      );
+    }
+
+    // Safe Multimodal Binary / Media Asset Verification with Magic-Byte Check
+    if (anchor.isMediaAsset) {
+      const stat = fs.statSync(absPath);
+      if (stat.size === 0) {
+        respond(
+          false,
+          `Media asset cited in EVIDENCE is empty (0 bytes): ${anchor.filePath}`,
+          "Verify that the source media file is non-empty."
+        );
+      }
+      const fd = fs.openSync(absPath, "r");
+      const headerBuf = Buffer.alloc(Math.min(64, stat.size));
+      fs.readSync(fd, headerBuf, 0, headerBuf.length, 0);
+      fs.closeSync(fd);
+
+      const ext = path.extname(absPath).toLowerCase();
+      if (!verifyMediaMagicBytes(headerBuf, ext)) {
+        respond(
+          false,
+          `Media asset ${anchor.filePath} failed binary header magic-byte verification for extension "${ext}".`,
+          "Ensure the media file is a valid, uncorrupted binary container."
+        );
+      }
+      continue;
+    }
+
+    // Entropy validation for text source tokens
+    const cleanToken = anchor.expectedToken.trim();
+    if (
+      cleanToken.length < 4 ||
+      LOW_ENTROPY_TOKENS.has(cleanToken) ||
+      /^[\W_]+$/.test(cleanToken)
+    ) {
+      respond(
+        false,
+        `Token "${anchor.expectedToken}" in ${anchor.raw} has insufficient lexical entropy.`,
+        "Cite a specific identifier, function name, or type name (>= 4 characters, not a generic keyword like 'const' or 'return')."
       );
     }
 
     const fileLines = fs.readFileSync(absPath, "utf-8").split(/\r?\n/);
     if (anchor.line < 1 || anchor.line > fileLines.length) {
+      // Check if line drifted slightly beyond EOF after prior deletions
+      const matchingLines: number[] = [];
+      for (let idx = 0; idx < fileLines.length; idx++) {
+        if (fileLines[idx].includes(anchor.expectedToken)) {
+          matchingLines.push(idx + 1);
+        }
+      }
+      if (matchingLines.length > 0) {
+        const closest = matchingLines.reduce((prev, curr) =>
+          Math.abs(curr - anchor.line) < Math.abs(prev - anchor.line) ? curr : prev
+        );
+        if (Math.abs(closest - anchor.line) <= MAX_SELF_HEAL_DRIFT) {
+          driftNotes.push(
+            `Auto-healed drift on ${anchor.filePath}: cited line ${anchor.line} -> reconciled to line ${closest}.`
+          );
+          continue;
+        }
+      }
       respond(
         false,
-        `Reference ${anchor.raw} targets line ${anchor.line}, but ${anchor.filePath} only has ${fileLines.length} lines.`,
-        "Do not hallucinate line numbers. Read the real file and cite the exact line."
+        `Reference ${anchor.raw} targets line ${anchor.line}, but ${anchor.filePath} has ${fileLines.length} lines.`,
+        "Read the file and cite an accurate line number within bounds."
       );
     }
 
-    // Tolerance window of +-5 lines to absorb line drift across edits
-    const startIdx = Math.max(0, anchor.line - 6);
-    const endIdx = Math.min(fileLines.length - 1, anchor.line + 4);
+    // Primary tolerance window of +-8 lines
+    const startIdx = Math.max(0, anchor.line - 9);
+    const endIdx = Math.min(fileLines.length - 1, anchor.line + 7);
     const windowSlice = fileLines.slice(startIdx, endIdx + 1).join("\n");
 
     if (!windowSlice.includes(anchor.expectedToken)) {
+      // Distance-proximity search across the file for True Self-Healing Reconciliation
+      const matchingLines: number[] = [];
+      for (let idx = 0; idx < fileLines.length; idx++) {
+        if (fileLines[idx].includes(anchor.expectedToken)) {
+          matchingLines.push(idx + 1);
+        }
+      }
+
+      if (matchingLines.length > 0) {
+        const closestLine = matchingLines.reduce((prev, curr) =>
+          Math.abs(curr - anchor.line) < Math.abs(prev - anchor.line) ? curr : prev
+        );
+        const driftDistance = Math.abs(closestLine - anchor.line);
+
+        if (matchingLines.length === 1 || driftDistance <= MAX_SELF_HEAL_DRIFT) {
+          driftNotes.push(
+            `Auto-healed line drift on ${anchor.filePath}: cited ${anchor.line} -> found "${anchor.expectedToken}" at line ${closestLine} (delta ${driftDistance} lines).`
+          );
+          continue;
+        }
+
+        respond(
+          false,
+          `Excessive line drift (${driftDistance} lines) at ${anchor.filePath}:${anchor.line}. Closest occurrence of "${anchor.expectedToken}" is at line ${closestLine}.`,
+          `Re-verify the target region and update your anchor to: ${anchor.filePath}:${closestLine}["${anchor.expectedToken}"]`
+        );
+      }
+
       respond(
         false,
-        `At ${anchor.filePath}:${anchor.line} (window ±5 lines) the token "${anchor.expectedToken}" was not found. Content at line ${anchor.line}: "${fileLines[anchor.line - 1].trim()}"`,
-        "Read the file before editing and cite a real token present on that line."
+        `At ${anchor.filePath}:${anchor.line} (and across the entire file), token "${anchor.expectedToken}" was not found. Line ${anchor.line} contains: "${fileLines[anchor.line - 1].trim()}"`,
+        "Read the target file and cite an exact identifier present in the file."
       );
     }
   }
 
-  // 4. Verify that the file targeted by the tool is covered in evidence
-  const targetFile = resolveTargetFile(payload);
-  if (targetFile) {
+  // 7. Verify multi-target coverage and stage baseline snapshots in OS temp dir
+  const targetFiles = resolveTargetFiles(payload);
+  for (const targetFile of targetFiles) {
     const normTarget = path.isAbsolute(targetFile)
       ? path.normalize(targetFile).toLowerCase()
       : path.normalize(path.resolve(cwd, targetFile)).toLowerCase();
@@ -273,13 +673,20 @@ function main() {
     if (!isCovered) {
       respond(
         false,
-        `Attempting to modify "${targetFile}", but this file is not declared in EVIDENCE anchors of your <system_audit>.`,
-        `Include a verifiable anchor for "${targetFile}" inside EVIDENCE: [...].`
+        `Target file "${targetFile}" is not listed in the EVIDENCE anchors of your <system_audit>.`,
+        `Add a verifiable anchor for "${targetFile}" inside EVIDENCE: [...].`
       );
     }
+
+    stageBackupForDiff(payload, cwd, targetFile);
   }
 
-  respond(true);
+  respond(
+    true,
+    undefined,
+    undefined,
+    driftNotes.length > 0 ? driftNotes.join(" | ") : undefined
+  );
 }
 
 main();

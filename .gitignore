@@ -8,3 +8,7 @@ Thumbs.db
 /dist
 /node_modules
 /scratch
+
+# Video production source & local builds
+/demo-video/
+Argon_Protocols_v9_Launch_Video.mp4

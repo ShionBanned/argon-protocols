@@ -2,24 +2,35 @@
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "argon-protocols",
   "displayName": "Argon Protocols",
-  "version": "9.0.0",
-  "description": "Hybrid Proof-Carrying Audit (PCA) & Deterministic Execution Architecture for Autonomous AI Coding Agents (Core, Builder, Director).",
+  "version": "9.2.0",
+  "description": "Hybrid Proof-Carrying Audit (PCA), Domain-Locked Execution Matrices (D x P), and LCS Diff-Scoped Runtime Governance for Autonomous AI Coding Agents.",
   "author": "Shion",
   "license": "MIT",
   "repository": "https://github.com/ShionBanned/argon-protocols",
   "keywords": [
     "antigravity",
+    "claude-code",
     "protocols",
     "guardrails",
     "engineering",
     "ai-agents",
-    "code-quality",
     "proof-carrying-audit",
     "deterministic-hooks"
   ],
+  "agents": [
+    "agents/argon-core.md",
+    "agents/argon-builder.md",
+    "agents/argon-director.md"
+  ],
+  "skills": [
+    "skills/argon-core",
+    "skills/argon-builder",
+    "skills/argon-director"
+  ],
+  "hooks": "hooks.json",
   "suggestedPrompts": [
     "Run Argon Core system audit with lexical proof verification",
-    "Build a greenfield component with Argon Builder tensor classification",
+    "Build a greenfield component with Argon Builder matrix classification",
     "Process video and audio timeline with Argon Director multimodal verification"
   ]
 }
