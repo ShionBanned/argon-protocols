@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^(write_file|edit_file|write_to_file|replace_file_content|multi_replace_file_content|MultiEdit|Write|Edit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun {{PLUGIN_DIR}}/hooks/pre-edit-audit.ts",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(write_file|edit_file|write_to_file|replace_file_content|multi_replace_file_content|MultiEdit|Write|Edit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun {{PLUGIN_DIR}}/hooks/post-edit-slop.ts",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

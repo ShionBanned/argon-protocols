@@ -2,8 +2,8 @@
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "argon-protocols",
   "displayName": "Argon Protocols",
-  "version": "8.0.0",
-  "description": "Frontier Engineering & Quality-Gate Architecture for Autonomous AI Coding Agents (Core, Builder, Director).",
+  "version": "9.0.0",
+  "description": "Hybrid Proof-Carrying Audit (PCA) & Deterministic Execution Architecture for Autonomous AI Coding Agents (Core, Builder, Director).",
   "author": "Shion",
   "license": "MIT",
   "repository": "https://github.com/ShionBanned/argon-protocols",
@@ -13,11 +13,13 @@
     "guardrails",
     "engineering",
     "ai-agents",
-    "code-quality"
+    "code-quality",
+    "proof-carrying-audit",
+    "deterministic-hooks"
   ],
   "suggestedPrompts": [
-    "Run Argon Core system audit on recent changes",
-    "Build a greenfield component with Argon Builder",
-    "Process video and audio timeline with Argon Director"
+    "Run Argon Core system audit with lexical proof verification",
+    "Build a greenfield component with Argon Builder tensor classification",
+    "Process video and audio timeline with Argon Director multimodal verification"
   ]
 }
