@@ -17,17 +17,6 @@
 
 https://github.com/user-attachments/assets/083ab72b-3096-4468-88e8-8e1c9b637a7b
 
-<details>
-  <summary>🖼️ <strong>Ver Póster de Alta Resolución y Descarga Directa</strong></summary>
-  <p align="center">
-    <a href="https://github.com/ShionBanned/argon-protocols/releases/download/v9.2.0/Argon_Protocols_v9_Launch_Video.mp4">
-      <img src="assets/thumbnail.png" alt="Video de Presentación de Argon Protocols v9" width="100%" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.3);" />
-    </a>
-    <br>
-    <em>⚡ <a href="https://github.com/ShionBanned/argon-protocols/releases/download/v9.2.0/Argon_Protocols_v9_Launch_Video.mp4">Descarga Directa (.mp4 ~6MB)</a> · <a href="https://github.com/ShionBanned/argon-protocols/releases/tag/v9.2.0">Assets del Release v9.2.0</a></em>
-  </p>
-</details>
-
 ---
 
 ## Declaración del Problema y Arquitectura Central
