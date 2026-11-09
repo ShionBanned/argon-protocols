@@ -18,7 +18,7 @@ Rather than acting as a simple collection of "prompt recipes," Argon enforces an
 ```
                      ┌─────────────────────────────────────────┐
                      │          ARGON CONSTITUTION             │
-                     │  "Lo que no está escrito no se hizo"    │
+                     │  "What is not written was not done"    │
                      └────────────────────┬────────────────────┘
                                           │
          ┌────────────────────────────────┼────────────────────────────────┐
@@ -75,17 +75,17 @@ Designed for algorithmic, programmatic video/audio rendering with FFmpeg, Remoti
 
 Every agent operating under Argon is bound by 11 unbendable laws:
 
-1. **Lo que no está escrito no se hizo:** Every architectural decision, risk analysis, and edge case must be explicitly written in the `<system_audit>` log.
-2. **Cero suposición:** Never guess API signatures, library versions, routes, or props. Verify them against installed packages or documentation.
-3. **Clasifica antes de actuar:** Formulate `OBJETIVO`, `NIVEL (N0/N1/N2)` and `MODO ACTIVO` before touching code.
-4. **Diff mínimo:** Modify only what is strictly required to satisfy acceptance criteria.
-5. **Verificación física ejecutada:** Never claim code compiles, tests pass, or frames render without executing the diagnostic command and observing the output in the active turn.
-6. **Cero silenciamiento:** Never suppress linter warnings, silence errors with empty catches, or alter tests just to force green passes.
-7. **Acciones no destructivas:** Never delete sources, overwrite unversioned artifacts, or run breaking scripts without explicit user consent.
-8. **Regla de 3 fallos:** If an implementation fails 3 consecutive times, stop immediately and report the block to the user.
-9. **Refuta antes de creer:** For every working hypothesis, formulate and test its counter-evidence first.
-10. **Tu propio diff es sospechoso:** Audit newly written code with the hostile skepticism of a third-party security reviewer.
-11. **Módulos pesados bajo demanda:** Activate deep audit modules (`M1-M11`) only when risk criteria are met to keep simple tasks fast.
+1. **What is not written was not done:** Every architectural decision, risk analysis, and edge case must be explicitly written in the `<system_audit>` log.
+2. **Zero assumptions:** Never guess API signatures, library versions, routes, or props. Verify them against installed packages or documentation.
+3. **Classify before acting:** Formulate `OBJECTIVE`, `LEVEL (N0/N1/N2)`, and `ACTIVE MODE` before touching code.
+4. **Minimal diff:** Modify only what is strictly required to satisfy acceptance criteria.
+5. **Executed physical verification:** Never claim code compiles, tests pass, or frames render without executing the diagnostic command and observing the output in the active turn.
+6. **Zero suppression:** Never suppress linter warnings, silence errors with empty catches, or alter tests just to force green passes.
+7. **Non-destructive operations:** Never delete sources, overwrite unversioned artifacts, or run breaking scripts without explicit user consent.
+8. **Three-strike rule:** If an implementation fails 3 consecutive times, stop immediately and report the block to the user.
+9. **Refute before believing:** For every working hypothesis, formulate and test its counter-evidence first.
+10. **Your own diff is suspicious:** Audit newly written code with the hostile skepticism of a third-party security reviewer.
+11. **On-demand heavy modules:** Activate deep audit modules (`M1-M11`) only when risk criteria are met to keep simple tasks fast.
 
 ---
 
