@@ -4,7 +4,7 @@
 [![Licencia: MIT](https://img.shields.io/badge/Licencia-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![Arquitectura](https://img.shields.io/badge/Arquitectura-Proof--Carrying%20Audit%20%28PCA%29-purple?style=for-the-badge)](#1-auditoría-portadora-de-prueba-pca-con-anclaje-léxico)
 [![Compatibilidad](https://img.shields.io/badge/Compatibilidad-Antigravity%20|%20Claude%20Code-success?style=for-the-badge)](#instalación-e-integración)
-[![Video de Lanzamiento](https://img.shields.io/badge/Ver-Video%20de%20Presentaci%C3%B3n%20(90s)-E62117?style=for-the-badge&logo=youtube&logoColor=white)](https://github.com/ShionBanned/argon-protocols/releases/download/v9.2.0/Argon_Protocols_v9_Launch_Video.mp4)
+[![Video de Lanzamiento](https://img.shields.io/badge/Ver-Video%20de%20Presentaci%C3%B3n%20(24s)-E62117?style=for-the-badge&logo=youtube&logoColor=white)](https://github.com/ShionBanned/argon-protocols/releases/download/v9.2.0/Argon_Protocols_v9_Launch_Video.mp4)
 
 **[English](README.md)** · **[Español](README_ES.md)**
 
@@ -149,6 +149,35 @@ argon-protocols/
 
 ---
 
+## Resumen de la Arquitectura de la Tríada
+
+| Protocolo | Ámbito | Mecanismos Centrales y Cumplimiento | Tamaño |
+| :--- | :--- | :--- | :---: |
+| **[`argon-core`](skills/argon-core/SKILL.md)** | Sistemas y Refactorización | Anclajes Léxicos PCA, Enrutamiento N0/N1/N2, Módulos M1–M11, Falsación de Errores. | ~90 líneas |
+| **[`argon-builder`](skills/argon-builder/SKILL.md)** | Construcción Greenfield | Matriz `D x P` (`ENG`, `SRF`, `SYS`, `PIP` x `JCE`, `CRF`, `DNS`, `MIN`), Zero-GC, 5 Estados UI. | ~90 líneas |
+| **[`argon-director`](skills/argon-director/SKILL.md)** | Ingeniería Audiovisual | Matriz de Medios `D x P`, Validador `MEDIA_ASSET` por Magic-Bytes, LUFS/Ducking, `ffprobe`. | ~90 líneas |
+
+---
+
+## Alternativas Consideradas
+
+| Enfoque Alternativo | Razón de Rechazo |
+| :--- | :--- |
+| **Soft-Steering basado solo en Prompts (Argon v8.0)** | Se degrada en contextos largos; los modelos rápidos saltan lecturas o inventan líneas bajo presión de tokens. |
+| **Escaneo de archivo completo o `Set<string>` ingenuo** | El escaneo completo genera la *Trampa de Rehenes Brownfield* ante `TODO`s heredados. El diff LCS aísla exactamente las líneas añadidas en `<3ms`. |
+| **Compilación AST Completa / LSP en PreToolUse** | Introduce latencias de 500ms a 3,000ms en cada edición. Los hooks léxicos corren en `<15ms` y delegan la compilación completa al Paso 5 de verificación. |
+| **Rollback silencioso en disco en PostToolUse** | Sobreescribir archivos en disco a espaldas del IDE anfitrión desincroniza los búferes de memoria del editor. Diagnósticos no destructivos permiten autocorrección en el mismo turno. |
+
+---
+
+## Riesgos, Límites y Mitigaciones
+
+1. **Dependencia de Runtime en Bun / Node.js:** Los scripts de hooks usan módulos estándar (`node:fs`, `node:path`, `node:os`, `node:crypto`) sin dependencias externas de npm, corriendo de forma nativa en **Bun** (`>= 1.0`) o **Node.js** (`>= 22.6` vía `node --experimental-strip-types`).
+2. **Latencia Asíncrona de Volcado de Transcript:** Si el anfitrión invoca `PreToolUse` antes de vaciar el flujo de texto al transcript, el hook ejecuta 3 reintentos acotados (`3 x 50ms`) leyendo los últimos 128KB del archivo, operando en modo *fail-closed* por defecto salvo que se defina `ARGON_PERMISSIVE_TRANSCRIPT=1`.
+3. **Deriva de Coordenadas de Línea por Ediciones Previas:** Cuando ediciones previas desplazan las líneas más allá de `+-8` líneas, el resolutor de proximidad localiza el identificador más cercano (hasta 150 líneas) y auto-reconcilia la coordenada sin detener al agente.
+
+---
+
 ## Instalación e Integración
 
 ### Requisitos Previos
@@ -156,7 +185,7 @@ argon-protocols/
 * **Google Antigravity** o **Claude Code**.
 
 ### Opción A: Configuración en Google Antigravity
-Copia las carpetas `skills/`, `agents/`, `hooks/` y `hooks.json` en `~/.gemini/config/`:
+1. Copia las carpetas `skills/`, `agents/`, `hooks/` y `hooks.json` en `~/.gemini/config/`:
 
 ```powershell
 # Windows (PowerShell)
@@ -178,7 +207,58 @@ cp -r hooks/* ~/.gemini/config/hooks/
 cp hooks.json ~/.gemini/config/hooks.json
 ```
 
-Al instalarse como plugin de Antigravity, `{{PLUGIN_DIR}}` en `hooks.json` se resuelve dinámicamente. Para instalación global en usuario (`~/.gemini/config/hooks.json`), reemplaza `{{PLUGIN_DIR}}` por la ruta absoluta de `~/.gemini/config`.
+2. Al instalarse como plugin de Antigravity, `{{PLUGIN_DIR}}` en `hooks.json` se resuelve automáticamente. Para instalación global en usuario (`~/.gemini/config/hooks.json`), reemplaza `{{PLUGIN_DIR}}` por la ruta absoluta de `~/.gemini/config` (ej. `$HOME/.gemini/config/hooks/pre-edit-audit.ts` en Unix o `C:/Users/<tu_usuario>/.gemini/config/hooks/pre-edit-audit.ts` en Windows).
+
+### Opción B: Configuración en Claude Code (`~/.claude/settings.json`)
+Copia el directorio `hooks/` a `~/.claude/hooks/` y registra `PreToolUse` y `PostToolUse` dentro de `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^(Write|Edit|MultiEdit|Bash)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun \"$HOME/.claude/hooks/pre-edit-audit.ts\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(Write|Edit|MultiEdit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun \"$HOME/.claude/hooks/post-edit-slop.ts\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Verificación y Pruebas de Humo (Smoke Testing)
+
+Ejecuta estos comandos desde la raíz del repositorio para comprobar el comportamiento mecánico de los hooks:
+
+```bash
+# 1. Verificar que PreToolUse bloquea ediciones no auditadas (Esperado: exit code 2 / [ARGON-GATE-BLOCK])
+echo '{"tool_name":"edit_file","tool_input":{"path":"plugin.json"},"assistant_message":"Editing file now"}' | bun hooks/pre-edit-audit.ts
+
+# 2. Verificar que PreToolUse aprueba <system_audit> con anclaje léxico real (Esperado: exit code 0)
+echo '{"tool_name":"edit_file","tool_input":{"path":"plugin.json"},"assistant_message":"<system_audit>\nRISK: N0\nEVIDENCE: [plugin.json:3[\"argon-protocols\"]]\nINVARIANT_CHECK: Preserves plugin manifest schema version\n</system_audit>"}' | bun hooks/pre-edit-audit.ts
+
+# 3. Verificar que PreToolUse permite comandos benignos de terminal sin auditoría previa (Esperado: exit code 0)
+echo '{"tool_name":"run_command","tool_input":{"command":"npm test > results.json"}}' | bun hooks/pre-edit-audit.ts
+```
 
 ---
 

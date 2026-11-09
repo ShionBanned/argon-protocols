@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![Architecture](https://img.shields.io/badge/Architecture-Proof--Carrying%20Audit%20%28PCA%29-purple?style=for-the-badge)](#1-proof-carrying-audit-pca-with-lexical-anchoring)
 [![Compatibility](https://img.shields.io/badge/Compatibility-Antigravity%20|%20Claude%20Code-success?style=for-the-badge)](#installation--integration)
-[![Launch Video](https://img.shields.io/badge/Watch-Launch%20Video%20(90s)-E62117?style=for-the-badge&logo=youtube&logoColor=white)](https://github.com/ShionBanned/argon-protocols/releases/download/v9.2.0/Argon_Protocols_v9_Launch_Video.mp4)
+[![Launch Video](https://img.shields.io/badge/Watch-Launch%20Video%20(24s)-E62117?style=for-the-badge&logo=youtube&logoColor=white)](https://github.com/ShionBanned/argon-protocols/releases/download/v9.2.0/Argon_Protocols_v9_Launch_Video.mp4)
 
 **[English](README.md)** · **[Español](README_ES.md)**
 
