@@ -2,72 +2,90 @@
 
 [![Version](https://img.shields.io/badge/Version-8.0.0-blue.svg?style=for-the-badge)](https://github.com/ShionBanned/argon-protocols)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+[![Target Architecture](https://img.shields.io/badge/Target%20Architecture-Flash%20%E2%86%92%20Frontier%20Reasoning-purple?style=for-the-badge)](#1-the-flash-to-frontier-cognitive-bridge-targetflash)
 [![Compatibility](https://img.shields.io/badge/Compatibility-Antigravity%20|%20Claude%20Code%20|%20Cursor%20|%20Codex-success?style=for-the-badge)](#installation--setup)
-[![Protocol Status](https://img.shields.io/badge/Standard-Frontier%20Quality%20Gate-red?style=for-the-badge)](#the-triad-architecture)
 
-> **Deterministic Execution, Zero-Assumption Exploration, and Hostile Quality-Gates for Autonomous AI Coding Agents.**
+> **Frontier Cognitive Scaffolding and Deterministic Execution Protocols for Autonomous AI Coding Agents.**  
+> *Engineered to bridge lightweight, high-speed models into rigorous, self-auditing Frontier Architects.*
 
 ---
 
-## 📖 Overview
+## 🎯 Core Mission & Dual Purpose
 
-**Argon Protocols** is an enterprise-grade execution framework designed to eradicate the most pervasive failure modes of autonomous AI coding agents: **hallucinated APIs, complacency, lazy diffs, silent failures, and unverified assumptions.**
+**Argon Protocols** was created to solve the fundamental trade-off of modern AI engineering: **the gap between model speed/cost and architectural rigor.**
 
-Rather than acting as a simple collection of "prompt recipes," Argon enforces an **adversarial, rule-bound constitution** that transforms any coding agent into a Principal Software Architect with zero tolerance for regression.
+While frontier reasoning models (like Claude Opus or Gemini Pro/Argon) possess high deliberation, they are slow, expensive, and subject to tight rate limits. Conversely, lightweight models (like **Gemini Flash**) offer blazing speed, immense context windows, and low token cost, but naturally default to "System-1" thinking: complacency, shallow exploration, unverified assumptions, and lazy diffs.
+
+**Argon provides the externalized cognitive exoskeleton (`target="flash"`) that forces high-speed models to deliberate, audit, and execute with the uncompromising precision of a heavyweight Frontier Architect.**
 
 ```
-                     ┌─────────────────────────────────────────┐
-                     │          ARGON CONSTITUTION             │
-                     │  "What is not written was not done"    │
-                     └────────────────────┬────────────────────┘
-                                          │
-         ┌────────────────────────────────┼────────────────────────────────┐
-         ▼                                ▼                                ▼
-  🛡️ ARGON CORE                   🏗️ ARGON BUILDER                 🎬 ARGON DIRECTOR
-• Systems Architecture           • Greenfield Creation            • Video Engineering
-• N0 / N1 / N2 Risk Engine       • Arcade-Juice (60 FPS Game Loop)• Viral-Beast vs Apple-Keynote
-• M1-M11 Heavy Modules           • Cupertino-Craft (5-State UI)   • Sub-frame sync & LUFS audio
-• Zero-Assumption Exploration    • Zero-Placeholder Guarantee     • Multimodal ffprobe check
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                                    THE ARGON HARNESS                                   │
+│                                                                                        │
+│   ⚡ Lightweight Model (e.g. Gemini Flash)                                              │
+│   [ High Speed · Low Cost · Massive Context · Tendency to take naive shortcuts ]      │
+│                                      │                                                 │
+│                                      ▼                                                 │
+│   🛡️ ARGON PROTOCOLS EXOSKELETON (`target="flash"`)                                    │
+│   ├─ Mandatory <system_audit> before code modification                                 │
+│   ├─ N0 / N1 / N2 Risk Classification & Contract Freezing                              │
+│   ├─ M1-M11 Heavy Verification Modules (Concurrency, Currency, Memory, State)          │
+│   ├─ Hostile Self-Auditing ("Your own diff is suspicious")                             │
+│   └─ Physical Execution Proof (LSP Diagnostics, Tests, ffprobe, Clean Console)         │
+│                                      │                                                 │
+│                                      ▼                                                 │
+│   🏛️ Deterministic Frontier Output (Zero Hallucination · Production Ready · Verified) │
+└────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🧬 Genesis & Architectural Philosophy
+## 🚀 The 5 Primary Purposes of Argon
 
-Argon was forged through **adversarial cross-model synthesis**:
-* **Claude (Anthropic):** Injected extreme instruction adherence, pedantic edge-case auditing, and deep aversion to unverified assumptions (*"Tu propio diff es sospechoso"*).
-* **Gemini (Google):** Injected large-scale systemic architecture, multimodal video/audio parsing, and determinism in high-throughput engines.
-* **Orchestration:** Iteratively stress-tested, refined, and codified across **8 major generational versions** by **[Shion](https://github.com/ShionBanned)** to eliminate model drift and ensure immediate, first-pass production readiness.
+### 1. ⚡ The Flash-to-Frontier Cognitive Bridge (`target="flash"`)
+* **Problem:** Fast models often generate code by intuition rather than formal derivation. They easily miss edge cases, use unverified imports, or report "all tests pass" without running verification.
+* **The Argon Uplift:** By mandating the `<system_audit>` block, distilled facts, and falsification-first debugging, Argon forces the model through **System-2 Analytical Reasoning**. It transforms high-throughput models into defensive, meticulous Staff-level engineers, cutting token costs by up to 80% without sacrificing architectural safety.
+
+### 2. 🛡️ Deterministic Anti-Regression & Architecture Shield (`argon-core`)
+* **Contract Protection:** Freezes interfaces, input/output types, and signatures using a strict topological order before modifying source files.
+* **Heavy Modules (M1-M11):** Activates specialized mathematical and algorithmic guardrails on demand:
+  * Eliminates race conditions in asynchronous code via visual timeline mapping.
+  * Enforces exact fixed-point integer math for financial currencies (COP, USD) to avoid floating-point drift.
+  * Audits state machines to replace brittle boolean flags with unified discriminated unions.
+
+### 3. 🏗️ Autonomous Greenfield Construction with Zero Placeholders (`argon-builder`)
+* **Production Completeness:** Strictly prohibits `// TODO`, `// rest of code`, or empty skeleton mocks. Everything delivered is complete, styled, and functional.
+* **Dual Greenfield Paradigms:**
+  * **`ARCADE-JUICE`:** Game loops and physics engines with bounded delta-time (`dt`), zero heap allocations in the render loop, and verified 60 FPS frame times.
+  * **`CUPERTINO-CRAFT`:** SaaS dashboards and web interfaces requiring **5 mandatory states** per component (`Empty`, `Loading`, `Success`, `Error with Recovery`, and `Overflow`).
+
+### 4. 🎬 Algorithmic Audiovisual Post-Production (`argon-director`)
+* **Sub-Frame Audio/Visual Synchronization:** Brings mathematical engineering to video generation and editing pipelines (FFmpeg, Remotion, Whisper, MoviePy).
+* **Acoustic Standards:** Mandates automatic audio ducking to -24 dBFS during dialogue, speech peak normalization at -6 dBFS, and integrated LUFS measurement.
+* **Multimodal Verification:** Prohibits declaring a render successful from an exit code alone; mandates `ffprobe` stream comparison and keyframe extraction at transition points.
+
+### 5. 🔬 Adversarial Falsification & Anti-Complacency
+* **Falsification-First Debugging:** Mandates formulating counter-evidence before adopting any bug hypothesis. The model must prove its theory survived falsification.
+* **Hostile Self-Review:** Instructs the model to evaluate its own newly created diff from the perspective of an external reviewer paid to reject the PR.
 
 ---
 
-## 🏛️ The Triad Architecture
+## 🧬 Genesis & Architectural Pedigree
 
-### 1. 🛡️ `argon-core` (Systems Engineering & Architecture)
-Designed for backend engines, state management, refactoring, and critical mission infrastructure.
-* **Risk Classification Engine:** Classifies every incoming prompt before writing a single line of code:
-  * **N0 (Trivial):** Maximum 5 lines, 1 file, no shared state. Lightweight audit.
-  * **N1 (Standard):** 1-3 files. Requires mapping all symbol consumers, style cloning, and targeted verification.
-  * **N2 (High Risk):** Public contracts, database schemas, monetary math, permissions, concurrency, or >3 files. Demands frozen interfaces, pre-edit baseline checks, and full regression sweeps.
-* **Heavy Modules (`M1-M11`):** Triggered conditionally when handling high-risk domains:
-  * Concurrency, race conditions, and deadlocks.
-  * Financial floating-point precision and rounding errors.
-  * Data loss prevention and atomic state migrations.
-  * Memory leak elimination and resource cleanup.
+Argon was engineered through **adversarial cross-model synthesis**:
+* **Claude (Anthropic):** Injected extreme instruction adherence, pedantic edge-case auditing, and deep aversion to unverified assumptions (*"Your own diff is suspicious"*).
+* **Gemini (Google):** Injected large-scale systemic architecture, multimodal parsing, and high-performance determinism.
+* **Architecture & Direction:** Conceived, stress-tested, and iteratively refined across **8 major generational versions** by **[Shion](https://github.com/ShionBanned)** to create a standardized protocol that reliably elevates accessible models into frontier software architects.
 
-### 2. 🏗️ `argon-builder` (Greenfield Development & High-Fidelity UI/UX)
-Designed for building software from absolute zero (games, WebGL, interactive Canvas, SaaS apps).
-* **Dual Paradigm Selection:**
-  * **`ARCADE-JUICE`:** Game loops, physics simulations, 2D/3D Canvas. Enforces bounded delta time (`dt`), zero garbage collection inside the render loop, and verified 60 FPS frame times.
-  * **`CUPERTINO-CRAFT`:** Production SaaS, e-commerce, and dashboards. Enforces **5 mandatory states** for every interactive component (`default`, `hover/active`, `focus`, `disabled`, `loading/error`).
-* **Zero-Placeholder Guarantee:** Strict prohibition of `// TODO: implement later`, empty skeleton mocks, or incomplete UI components.
+---
 
-### 3. 🎬 `argon-director` (Audiovisual Post-Production & Video Engineering)
-Designed for algorithmic, programmatic video/audio rendering with FFmpeg, Remotion, MoviePy, and Whisper.
-* **Dual Aesthetic Paradigms:**
-  * **`VIRAL-BEAST`:** Dynamic pacing, 3-second hook retention, stimulus every <3.5s, aggressive dynamic zooms.
-  * **`APPLE-KEYNOTE`:** Architectural restraint, 50% breathing room, continuous cubic bezier easing, zero linear interpolations.
-* **Multimodal Verification:** Prohibits declaring a render "successful" based merely on `exit code 0`. Mandates `ffprobe` stream validation, keyframe extraction, LUFS decibel balancing, and audio ducking calibration.
+## 🏛️ The Triad Architecture Overview
+
+| Protocol | Specialized Domain | Core Mechanisms & Enforcement |
+| :--- | :--- | :--- |
+| **`argon-core`** | Systems Engineering & Backend Architecture | N0/N1/N2 Risk Matrix, `<system_audit>`, M1-M11 Heavy Modules, Falsification Debugging, Lazy Baseline Verification. |
+| **`argon-builder`** | Greenfield Software, Games & UI/UX | `ARCADE-JUICE` (Zero-GC, 60 FPS, Game Feel) vs `CUPERTINO-CRAFT` (5 UI States, Design Tokens, CLS=0), FSM Validation. |
+| **`argon-director`** | Audiovisual Post-Production & Video Pipelines | `VIRAL-BEAST` (Dynamic Retention) vs `APPLE-KEYNOTE` (Restrained Elegance), LUFS Audio Ducking, `ffprobe` Multimodal Keyframe Audit. |
 
 ---
 
@@ -89,16 +107,16 @@ Every agent operating under Argon is bound by 11 unbendable laws:
 
 ---
 
-## 🚀 Installation & Setup
+## 🚀 Installation & Integration
 
 ### Google Antigravity & Gemini CLI
-Clone or install directly via the `agy` CLI:
+Install directly via the `agy` CLI:
 ```bash
 agy plugin install https://github.com/ShionBanned/argon-protocols
 ```
-Or copy the skills to your local configuration:
+Or copy the skills directly to your local Antigravity/Gemini configuration:
 ```bash
-# Windows
+# Windows (PowerShell)
 Copy-Item -Recurse skills/* "$env:USERPROFILE\.gemini\config\skills\"
 
 # Linux / macOS
@@ -106,16 +124,15 @@ cp -r skills/* ~/.gemini/config/skills/
 ```
 
 ### Claude Code & Codex CLI
-Add the skills directly to your Claude Code or Codex project directory:
+Clone into your local or global agent configuration:
 ```bash
-# Clone into your agent skills path
 git clone https://github.com/ShionBanned/argon-protocols.git ~/.claude/skills/argon
 ```
 
 ---
 
-## 👤 Author & Architecture
+## 👤 Author & Recognition
 
-* **Creator:** **Shion** ([@ShionBanned](https://github.com/ShionBanned))
+* **Architect & Author:** **Shion** ([@ShionBanned](https://github.com/ShionBanned))
 * **License:** [MIT License](LICENSE)
-* **Contributions:** PRs and issue discussions on frontier agent governance are welcome!
+* **Contributions:** Open-source issues and PRs addressing frontier agent governance and model economics are welcome!
