@@ -1,0 +1,10 @@
+# System & OS
+.DS_Store
+Thumbs.db
+
+# Logs & temp
+*.log
+.coverage
+/dist
+/node_modules
+/scratch

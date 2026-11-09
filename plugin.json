@@ -1,0 +1,23 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "argon-protocols",
+  "displayName": "Argon Protocols",
+  "version": "8.0.0",
+  "description": "Frontier Engineering & Quality-Gate Architecture for Autonomous AI Coding Agents (Core, Builder, Director).",
+  "author": "Shion",
+  "license": "MIT",
+  "repository": "https://github.com/ShionBanned/argon-protocols",
+  "keywords": [
+    "antigravity",
+    "protocols",
+    "guardrails",
+    "engineering",
+    "ai-agents",
+    "code-quality"
+  ],
+  "suggestedPrompts": [
+    "Run Argon Core system audit on recent changes",
+    "Build a greenfield component with Argon Builder",
+    "Process video and audio timeline with Argon Director"
+  ]
+}
