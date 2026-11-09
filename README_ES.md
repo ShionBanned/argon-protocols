@@ -30,7 +30,7 @@ En los marcos basados únicamente en prompts (**Argon v8.0**), las restricciones
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                               TOPOLOGÍA HÍBRIDA DE ARGON v9.2                           │
+│                               TOPOLOGÍA HÍBRIDA DE ARGON v9.2                          │
 │                                                                                        │
 │   Modelo de Agente Rápido (ej. Gemini Flash / Claude Haiku)                            │
 │   [ Alto Throughput · Baja Latencia · Contexto Semántico Compacto ]                    │
