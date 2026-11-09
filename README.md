@@ -15,13 +15,18 @@
 
 ## 🎬 Official Presentation Video
 
-<p align="center">
-  <a href="https://github.com/ShionBanned/argon-protocols/releases/download/v9.2.0/Argon_Protocols_v9_Launch_Video.mp4" title="Watch the Argon Protocols v9 Presentation Video">
-    <img src="assets/thumbnail.png" alt="Argon Protocols v9 Presentation Video" width="100%" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.3);" />
-  </a>
-  <br>
-  <em>⚡ <strong>Watch the 90-Second Presentation Video:</strong> Click the poster above or <a href="https://github.com/ShionBanned/argon-protocols/releases/download/v9.2.0/Argon_Protocols_v9_Launch_Video.mp4">stream / download directly (.mp4)</a>.</em>
-</p>
+https://github.com/user-attachments/assets/083ab72b-3096-4468-88e8-8e1c9b637a7b
+
+<details>
+  <summary>🖼️ <strong>View High-Res Poster & Direct Download</strong></summary>
+  <p align="center">
+    <a href="https://github.com/ShionBanned/argon-protocols/releases/download/v9.2.0/Argon_Protocols_v9_Launch_Video.mp4">
+      <img src="assets/thumbnail.png" alt="Argon Protocols v9 Presentation Video" width="100%" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.3);" />
+    </a>
+    <br>
+    <em>⚡ <a href="https://github.com/ShionBanned/argon-protocols/releases/download/v9.2.0/Argon_Protocols_v9_Launch_Video.mp4">Direct Download (.mp4 ~6MB)</a> · <a href="https://github.com/ShionBanned/argon-protocols/releases/tag/v9.2.0">Release v9.2.0 Assets</a></em>
+  </p>
+</details>
 
 ---
 
