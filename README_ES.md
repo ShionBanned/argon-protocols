@@ -1,268 +1,79 @@
-# Protocolos Argon (v9.2 Híbrido)
+# Protocolos Argon 10.0
 
-[![Versión](https://img.shields.io/badge/Versi%C3%B3n-9.2.0-blue.svg?style=for-the-badge)](https://github.com/ShionBanned/argon-protocols)
-[![Licencia: MIT](https://img.shields.io/badge/Licencia-MIT-yellow.svg?style=for-the-badge)](LICENSE)
-[![Arquitectura](https://img.shields.io/badge/Arquitectura-Proof--Carrying%20Audit%20%28PCA%29-purple?style=for-the-badge)](#1-auditoría-portadora-de-prueba-pca-con-anclaje-léxico)
-[![Compatibilidad](https://img.shields.io/badge/Compatibilidad-Antigravity%20|%20Claude%20Code-success?style=for-the-badge)](#instalación-e-integración)
-[![Video de Lanzamiento](https://img.shields.io/badge/Ver-Video%20de%20Presentaci%C3%B3n%20(24s)-E62117?style=for-the-badge&logo=youtube&logoColor=white)](https://github.com/ShionBanned/argon-protocols/releases/download/v9.2.0/Argon_Protocols_v9_Launch_Video.mp4)
+[English](README.md) · [MIT](LICENSE)
 
-**[English](README.md)** · **[Español](README_ES.md)**
+Tres skills para mejorar la fiabilidad del trabajo de Gemini Flash mediante inspección del proyecto, decisiones según riesgo y verificación ejecutable. La versión 10 unifica las copias v9.2/v9.3 y corrige la integración con Antigravity.
 
-> **Auditoría Portadora de Prueba (PCA) y Gobernanza en Tiempo de Ejecución Acotada por Diff para Agentes Autónomos de IA.**  
-> *Diseñado para combinar especificaciones semánticas compactas con interceptores deterministas previos y posteriores a la mutación en Google Antigravity y Claude Code.*
+No modifica pesos del modelo, amplía permisos ni acredita que supere a Argon, Carbon, Opus, Fable u otro modelo. Ese objetivo necesita evaluación comparativa. Los hooks son controles concretos y diagnósticos, no un compilador de razonamiento.
 
----
+## Selección y funcionamiento
 
-## 🎬 Video Oficial de Presentación
+| Skill | Uso |
+| --- | --- |
+| [argon-core](skills/argon-core/SKILL.md) | Bugs, mantenimiento, arquitectura y refactor con contratos preservados |
+| [argon-builder](skills/argon-builder/SKILL.md) | Producto nuevo y flujos completos verificables |
+| [argon-director](skills/argon-director/SKILL.md) | Audiovisual por invocación explícita, preservación de fuentes y verificación del medio |
 
-https://github.com/user-attachments/assets/083ab72b-3096-4468-88e8-8e1c9b637a7b
+El [contrato compartido](docs/PROTOCOL.md) define N0/N1/N2, matrices orientativas, módulos M1–M11 y formato de evidencia. Cada skill incluye una copia generada de ese contrato para instalarse por separado. `node scripts/sync.mjs` sincroniza referencias, agents y plantillas; `node scripts/validate.mjs` detecta divergencias.
 
----
+Las instrucciones evitan reescrituras automáticas tras dos fallos, porcentajes inventados de ambigüedad, dependencias globales obligatorias y presupuestos visuales/de rendimiento sin medición. Los cartuchos existentes siguen siendo opcionales; no se modifican herramientas ajenas a este paquete.
 
-## Declaración del Problema y Arquitectura Central
+## Requisitos y comprobación local
 
-En los marcos basados únicamente en prompts (**Argon v8.0**), las restricciones del agente dependían exclusivamente de instrucciones textuales (*"soft-steering"*). En ventanas de contexto extensas, los modelos rápidos (como **Gemini Flash** o **Claude Haiku**) sufren frecuentemente de *Teatro de Cumplimiento*: emiten bloques de auditoría superficiales, adivinan números de línea sin leer los archivos o dejan comentarios `// TODO` truncados para ahorrar tokens de salida.
+- Node 22.18+ para scripts y pruebas; Bun para los comandos de hooks predeterminados. Esta entrega se verifica con las versiones locales registradas en el informe.
+- Parser fijado en TypeScript 5.9.3, instalado con `bun install --frozen-lockfile --ignore-scripts`. Se usa su API de análisis, no el compilador del proyecto del usuario. Actualizarlo requiere probar compatibilidad.
+- Antigravity App/CLI/IDE con hooks compatibles. La selección `model: flash` es un nivel del anfitrión; no fija por sí sola el identificador Gemini 3.8.
 
-**Argon v9.2 Híbrido** separa la guía semántica de la imposición mecánica:
-
-1. **El Prompt (`SKILL.md` ~90 líneas por skill):** Funciona como una **Especificación Semántica e Invariante** compacta, mitigando la degradación de atención en contextos largos.
-2. **El Runtime (`hooks/` en TypeScript/Bun):** Funciona como un **Guardián Léxico Determinista, Validador de Medios por Magic-Bytes y Escáner de Patrones Acotado por Diff LCS**.
+Desde la raíz del paquete:
 
 ```text
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                               TOPOLOGÍA HÍBRIDA DE ARGON v9.2                          │
-│                                                                                        │
-│   Modelo de Agente Rápido (ej. Gemini Flash / Claude Haiku)                            │
-│   [ Alto Throughput · Baja Latencia · Contexto Semántico Compacto ]                    │
-│                                      │                                                 │
-│                                      ▼                                                 │
-│   ESPECIFICACIÓN DE SKILL (~90 líneas por skill)                                       │
-│   ├─ Enrutamiento por Riesgo N0 / N1 / N2 y Ciclo de Vida de 6 Pasos                   │
-│   ├─ Matriz de Ejecución Ortogonal (Dominio D x Perfil P)                              │
-│   └─ Auditoría Portadora de Prueba: <system_audit> en el turno actual                  │
-│                                      │                                                 │
-│                                      ▼ (El anfitrión pasa JSON vía STDIN)              │
-│   INTERCEPTORES DE RUNTIME ({{PLUGIN_DIR}}/hooks/...)                                  │
-│   ├─ PreToolUse (`pre-edit-audit.ts`):                                                 │
-│   │   • Lee los últimos 128KB del transcript (3 reintentos de 50ms, fail-closed)       │
-│   │   • Valida RISK, MATRIX bloqueada por dominio, MODULE (N2) y multi-target          │
-│   │   • Archivos de texto: verifica token (+-8 líneas) con auto-reconciliación         │
-│   │   • Binarios: verifica presencia en disco y magic bytes de cabecera de 64B         │
-│   │   • Bloquea escrituras por shell (> file.ts, sed -i); permite tests/lecturas       │
-│   │   • Guarda snapshots de línea base en `os.tmpdir()/argon-staging/<session>/`       │
-│   └─ PostToolUse (`post-edit-slop.ts`):                                                │
-│       • Calcula líneas añadidas mediante diff LCS contra la línea base de tmpdir       │
-│       • Enmascara literales de string ("...", '...', `...`) y comentarios              │
-│       • Emite diagnósticos de línea no destructivos sin desincronizar el IDE           │
-│                                      │                                                 │
-│                                      ▼                                                 │
-│   Árbol de Trabajo Verificado (Ediciones Auditadas · Cero Polución en Git)             │
-└────────────────────────────────────────────────────────────────────────────────────────┘
+bun install --frozen-lockfile --ignore-scripts
+node scripts/validate.mjs
+node --test tests/*.test.mjs
+node scripts/install.mjs --config-root C:/Users/gamer/.gemini/config
 ```
 
----
-
-## Metas y No-Metas
-
-### Metas
-* **Verificación Obligatoria de Anclajes Léxicos Antes de Mutar:** Comprobar mecánicamente que el agente inspeccionó cada archivo objetivo (mediante tokens identificadores de alta entropía) antes de permitir ediciones individuales o por lotes (`MultiEdit`).
-* **Compatibilidad con Código Heredado (Brownfield) vía Diff LCS:** Restringir el escaneo de calidad estrictamente a las líneas nuevas o modificadas para permitir parches quirúrgicos en archivos heredados sin obligar a refactorizaciones no solicitadas.
-* **Prevenir Desincronización del IDE:** Almacenar snapshots temporales en `os.tmpdir()/argon-staging/` (sin ensuciar `git status`) y devolver errores explícitos a nivel de línea sin sobreescribir búferes de memoria del editor.
-* **Eliminar Falsos Positivos de Expresiones Regulares en Strings:** Enmascarar literales de texto y comentarios antes de verificar reglas como `: any` o bloques `catch {}` vacíos.
-
-### No-Metas
-* **Compilación AST Completa dentro de los Hooks:** Los hooks ejecutan comprobaciones ultrarrápidas (<15ms). La compilación estática completa (`tsc`, `cargo check`) y pruebas unitarias ocurren en el Paso 5 del ciclo de vida.
-
----
-
-## Los 4 Pilares de Argon v9.2
-
-### 1. Auditoría Portadora de Prueba (PCA) con Anclaje Léxico
-Antes de invocar cualquier herramienta de mutación (`edit_file`, `write_file`, `MultiEdit`, `multi_replace_file_content`), el agente debe emitir un bloque `<system_audit>` en su respuesta conversacional:
-
-```xml
-<system_audit>
-RISK: N1
-MATRIX: SYS x MIN
-MODULE: NONE
-EVIDENCE: [src/core/auth.ts:42["validateSessionToken"], src/new/route.ts:0["NEW_FILE"]]
-INVARIANT_CHECK: Preserves POSIX exit codes and idempotent session lookup
-</system_audit>
-```
-
-El entorno pasa el evento vía `STDIN`. El hook `pre-edit-audit.ts` lee el transcript activo y valida:
-* **Literales Reservados (`NEW_FILE` y `MEDIA_ASSET`):** Archivos nuevos deben declararse en la línea `0` con el token `"NEW_FILE"` (`nuevo.ts:0["NEW_FILE"]`). Insumos binarios usan `"MEDIA_ASSET"`, disparando una verificación de cabecera de 64 bytes (`ftyp`, `RIFF`, `ID3`, `PNG`, `JPEG`, `fLaC`, `EBML`).
-* **Entropía Léxica y Auto-Reconciliación de Deriva:** Para archivos existentes, el token debe ser un identificador real (≥ 4 caracteres). Si ediciones previas desplazaron la línea más allá de `+-8` líneas, el hook localiza la coincidencia más cercana (hasta 150 líneas) y **auto-reconcilia la coordenada sin bloquear la ejecución**.
-* **Comandos de Terminal Permitidos:** Comandos de lectura y test (`npm test`, `git status`, `ffprobe`) corren libremente. Solo se bloquean comandos que intenten redirigir salidas de texto hacia archivos fuente (`> app.ts`, `sed -i`).
-
-### 2. Matrices de Ejecución Ortogonales (D x P)
-Las tareas en `N1` y `N2` se clasifican combinando **Dominio (D)** con **Perfil (P)**:
-
-* **Ingeniería de Software (`argon-core` y `argon-builder`):**
-  * **Dominio D:**
-    * `ENG` (**Engine**): Loops interactivos, Canvas/WebGL, DSP. Invariantes: Loop Zero-GC, `dt` acotado a `<= 0.1s`.
-    * `SRF` (**Surface**): UI web/móvil y sistemas de diseño. Invariantes: `CLS == 0`, `WCAG_AA` y los 5 Estados Explícitos (`Empty`, `Loading`, `Success`, `Error`, `Overflow`).
-    * `SYS` (**System**): CLIs, demonios, APIs REST/RPC. Invariantes: códigos de salida POSIX, captura de `SIGINT`/`SIGTERM`, I/O idempotente.
-    * `PIP` (**Pipeline**): ETL, flujos continuos, colas, migraciones. Invariantes: contrapresión acotada, DLQ, checkpoints atómicos.
-  * **Perfil P:** `JCE` (Juice / Resortes) | `CRF` (Craft / Retícula Suiza) | `DNS` (Dense / Alta Densidad de Datos) | `MIN` (Minimal / Cero Dependencias).
-* **Ingeniería Audiovisual (`argon-director`):**
-  * **Dominio D:** `SHRT` (Shorts 9:16) | `PED` (Tutorial 16:9) | `KEY` (Keynote Lanzamiento) | `DOC` (Documental).
-  * **Perfil P:** `BST` (Beast / Ritmo Acelerado) | `KYN` (Keynote Craft) | `CIN` (Cinemático) | `RAW` (Demo en Vivo sin Cortes).
-
-### 3. Enrutamiento por Riesgo (N0 / N1 / N2), Módulos (M1–M11) y Ciclo de 6 Pasos
-* **N0 (Trivial):** <=5 líneas en 1 archivo.
-* **N1 (Estándar):** 1–3 archivos, cambios acotados.
-* **N2 (Alto Riesgo):** >3 archivos, esquemas compartidos, autenticación o concurrencia (requiere al menos un módulo `M1..M11`).
-
-### 4. Escáner de Patrones Acotado por Diff LCS
-`post-edit-slop.ts` compara el archivo editado contra la línea base mediante LCS, inspeccionando **únicamente las líneas añadidas**:
-* Bloquea comentarios de pereza (`// TODO`, `// rest of code`, `# implement here`) y bloques `catch {}` vacíos.
-* Restringe verificaciones de tipo (`: any`, `as any`, `@ts-ignore`) a archivos JS/TS.
-
----
-
-## Estructura del Repositorio
+La última orden solo muestra un plan. Para aplicarlo:
 
 ```text
-argon-protocols/
-├── plugin.json                      # Manifiesto de plugin de Antigravity (v9.2.0)
-├── hooks.json                       # Configuración de interceptores de runtime
-├── README.md                        # Especificación de arquitectura (Inglés)
-├── README_ES.md                     # Especificación de arquitectura (Español)
-├── assets/
-│   └── thumbnail.png                # Banner oficial y miniatura del video
-├── hooks/
-│   ├── pre-edit-audit.ts            # Guardián de pre-edición PCA y deriva léxica
-│   └── post-edit-slop.ts            # Escáner anti-slop acotado por diff LCS
-├── skills/
-│   ├── argon-core/
-│   │   └── SKILL.md                 # Protocolo de sistemas y módulos M1-M11
-│   ├── argon-builder/
-│   │   └── SKILL.md                 # Protocolo greenfield y matriz D x P
-│   └── argon-director/
-│       └── SKILL.md                 # Protocolo audiovisual, LUFS y ffprobe
-└── agents/
-    ├── argon-core.md                # Subagente autónomo de sistemas y refactor
-    ├── argon-builder.md             # Subagente autónomo de construcción greenfield
-    └── argon-director.md            # Subagente autónomo de ingeniería audiovisual
+node scripts/install.mjs --config-root C:/Users/gamer/.gemini/config --apply --backup C:/ruta/nueva/argon-backup
+node scripts/doctor.mjs --config-root C:/Users/gamer/.gemini/config
 ```
 
----
+La instalación conserva otros grupos de hooks, crea copia de cada archivo reemplazado y rechaza objetivos cambiados desde la planificación. Copia las tres skills, referencias, agents y el recibo. Registra `~/.gemini/config/hooks.json` apuntando a esta raíz del paquete, que debe permanecer disponible con sus dependencias. No basta con guardar la configuración en `config/hooks/hooks.json`.
 
-## Resumen de la Arquitectura de la Tríada
+El registro global aplica el pre-hook a las herramientas de edición y terminal indicadas en su matcher. Esto afecta todas las sesiones que carguen ese grupo, incluso cuando una skill aún no se haya activado. Para alcance por proyecto usa la definición generada con rutas absolutas en `.agents/hooks.json`; evita registrar ambas copias simultáneamente. En una instalación como plugin, `hooks.json` usa rutas relativas a la raíz del paquete: el anfitrión ejecuta allí los hooks. La variable antigua `{{PLUGIN_DIR}}` se eliminó porque no forma parte de ese contrato.
 
-| Protocolo | Ámbito | Mecanismos Centrales y Cumplimiento | Tamaño |
-| :--- | :--- | :--- | :---: |
-| **[`argon-core`](skills/argon-core/SKILL.md)** | Sistemas y Refactorización | Anclajes Léxicos PCA, Enrutamiento N0/N1/N2, Módulos M1–M11, Falsación de Errores. | ~90 líneas |
-| **[`argon-builder`](skills/argon-builder/SKILL.md)** | Construcción Greenfield | Matriz `D x P` (`ENG`, `SRF`, `SYS`, `PIP` x `JCE`, `CRF`, `DNS`, `MIN`), Zero-GC, 5 Estados UI. | ~90 líneas |
-| **[`argon-director`](skills/argon-director/SKILL.md)** | Ingeniería Audiovisual | Matriz de Medios `D x P`, Validador `MEDIA_ASSET` por Magic-Bytes, LUFS/Ducking, `ffprobe`. | ~90 líneas |
+Abre una sesión nueva o recarga personalizaciones y comprueba `/hooks` en la CLI o Customizations > Hooks en la app. `doctor` revisa disco y configuración; no puede certificar por sí solo que una sesión abierta haya recargado los hooks. Conserva la regla local de activar director solo por petición explícita.
 
----
+Restauración: `node scripts/install.mjs --restore C:/ruta/argon-backup`. Si un objetivo cambió tras instalar, se detiene para no perder trabajo. El backup del repositorio y los archivos instalados son conjuntos distintos: conserva ambos al actualizar.
 
-## Alternativas Consideradas
+## Qué comprueba el runtime
 
-| Enfoque Alternativo | Razón de Rechazo |
-| :--- | :--- |
-| **Soft-Steering basado solo en Prompts (Argon v8.0)** | Se degrada en contextos largos; los modelos rápidos saltan lecturas o inventan líneas bajo presión de tokens. |
-| **Escaneo de archivo completo o `Set<string>` ingenuo** | El escaneo completo genera la *Trampa de Rehenes Brownfield* ante `TODO`s heredados. El diff LCS aísla exactamente las líneas añadidas en `<3ms`. |
-| **Compilación AST Completa / LSP en PreToolUse** | Introduce latencias de 500ms a 3,000ms en cada edición. Los hooks léxicos corren en `<15ms` y delegan la compilación completa al Paso 5 de verificación. |
-| **Rollback silencioso en disco en PostToolUse** | Sobreescribir archivos en disco a espaldas del IDE anfitrión desincroniza los búferes de memoria del editor. Diagnósticos no destructivos permiten autocorrección en el mismo turno. |
+1. **Antes de editar:** solo evidencia del texto del asistente después del último mensaje real del usuario. Reconoce `USER_EXPLICIT/USER_INPUT`; no usa outputs de herramientas ni razonamiento privado. Lectura acotada a 2 MiB; si falta la frontera o el JSON está incompleto, rechaza en vez de aceptar una auditoría vieja.
+2. **Contrato:** formato estricto, cobertura de todos los objetivos, rutas normalizadas y enlaces resueltos dentro de workspaces, archivo nuevo/vacío y lectura de tokens con deriva máxima de ocho líneas. N2 exige un módulo desarrollado. No puede verificar automáticamente que el riesgo declarado sea semánticamente correcto.
+3. **Antes/después:** snapshots privados por sesión y llamada; serialización del mismo archivo dentro de la sesión. Sin snapshot no hay validación. No hay rollback automático ni modo permisivo que finja aprobación. Límite de 4 MiB por archivo de texto y diez minutos para emparejar un evento.
+4. **Después de editar:** análisis sintáctico JS/TS y diferencia de diagnósticos. Detecta interpolaciones y cambios solo por borrado; no confunde strings, regex ni JSX con anotaciones de tipo. Los errores heredados no se reportan otra vez; una duplicación añadida sí. La comparación por huella no atribuye movimientos de un mismo patrón a una línea histórica exacta.
+5. **Feedback en Antigravity:** PostToolUse devuelve `{}` y registra hallazgos; PreInvocation los entrega como mensaje efímero en la próxima invocación. Es revisión asistida, no bloqueo de entrega ni reversión. Hallazgos resueltos desaparecen; los pendientes persisten durante la sesión hasta 24 horas.
 
----
+Python, Go, Rust y otros lenguajes requieren sus linters/tests; aquí no se simula análisis semántico. Las firmas binarias comprueban cabeceras, no integridad audiovisual. La heurística de shell detecta escrituras comunes, pero ejecutar scripts arbitrarios puede escribir archivos: los permisos y sandbox del anfitrión siguen siendo necesarios. El auditor no es una frontera de seguridad contra un agente malicioso.
 
-## Riesgos, Límites y Mitigaciones
+Los adaptadores `--host generic`, `--host claude` y `--host gemini` tienen pruebas de payload/output locales; no se instala configuración para otros productos ni se afirma integración de extremo a extremo en ellos. Gemini CLI usa eventos distintos de Antigravity. No copies la plantilla Antigravity a otro anfitrión.
 
-1. **Dependencia de Runtime en Bun / Node.js:** Los scripts de hooks usan módulos estándar (`node:fs`, `node:path`, `node:os`, `node:crypto`) sin dependencias externas de npm, corriendo de forma nativa en **Bun** (`>= 1.0`) o **Node.js** (`>= 22.6` vía `node --experimental-strip-types`).
-2. **Latencia Asíncrona de Volcado de Transcript:** Si el anfitrión invoca `PreToolUse` antes de vaciar el flujo de texto al transcript, el hook ejecuta 3 reintentos acotados (`3 x 50ms`) leyendo los últimos 128KB del archivo, operando en modo *fail-closed* por defecto salvo que se defina `ARGON_PERMISSIVE_TRANSCRIPT=1`.
-3. **Deriva de Coordenadas de Línea por Ediciones Previas:** Cuando ediciones previas desplazan las líneas más allá de `+-8` líneas, el resolutor de proximidad localiza el identificador más cercano (hasta 150 líneas) y auto-reconcilia la coordenada sin detener al agente.
+## Recibos y pruebas de comportamiento
 
----
-
-## Instalación e Integración
-
-### Requisitos Previos
-* **Bun** (`>= 1.0`) o **Node.js** (`>= 22.6`) en el `PATH`.
-* **Google Antigravity** o **Claude Code**.
-
-### Opción A: Configuración en Google Antigravity
-1. Copia las carpetas `skills/`, `agents/`, `hooks/` y `hooks.json` en `~/.gemini/config/`:
-
-```powershell
-# Windows (PowerShell)
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.gemini\config\skills"
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.gemini\config\agents"
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.gemini\config\hooks"
-Copy-Item -Recurse -Force skills\* "$env:USERPROFILE\.gemini\config\skills\"
-Copy-Item -Recurse -Force agents\* "$env:USERPROFILE\.gemini\config\agents\"
-Copy-Item -Recurse -Force hooks\* "$env:USERPROFILE\.gemini\config\hooks\"
-Copy-Item -Force hooks.json "$env:USERPROFILE\.gemini\config\hooks.json"
+```text
+node scripts/receipt.mjs verify --task regression --claim "Los contratos comprobados se conservan" --out receipt.json -- node --test tests/hooks.test.mjs
 ```
 
-```bash
-# Linux / macOS
-mkdir -p ~/.gemini/config/skills ~/.gemini/config/agents ~/.gemini/config/hooks
-cp -r skills/* ~/.gemini/config/skills/
-cp -r agents/* ~/.gemini/config/agents/
-cp -r hooks/* ~/.gemini/config/hooks/
-cp hooks.json ~/.gemini/config/hooks.json
-```
+Ejecuta un programa y argumentos explícitos sin shell implícito. Captura stdout/stderr concurrentemente, limita salida retenida y tiempo, conserva código de salida y distingue fallo, timeout y error de ejecución. `--artifact archivo` añade tamaño y SHA-256. No sobrescribe un recibo anterior. El wrapper global `argon-receipt` usa esta misma interfaz; `--cmd` antiguo se rechaza con explicación.
 
-2. Al instalarse como plugin de Antigravity, `{{PLUGIN_DIR}}` en `hooks.json` se resuelve automáticamente. Para instalación global en usuario (`~/.gemini/config/hooks.json`), reemplaza `{{PLUGIN_DIR}}` por la ruta absoluta de `~/.gemini/config` (ej. `$HOME/.gemini/config/hooks/pre-edit-audit.ts` en Unix o `C:/Users/<tu_usuario>/.gemini/config/hooks/pre-edit-audit.ts` en Windows).
+`CHECK_PASSED` significa únicamente que pasó ese comando. Ya no hay fallback a `git status` ni un `ACCEPTED` que confunda salida cero con validación de toda una afirmación.
 
-### Opción B: Configuración en Claude Code (`~/.claude/settings.json`)
-Copia el directorio `hooks/` a `~/.claude/hooks/` y registra `PreToolUse` y `PostToolUse` dentro de `~/.claude/settings.json`:
+[La suite piloto](evals/README.md) permite preparar y calificar cuatro tareas iguales con/sin Argon. No llama a modelos ni presenta resultados inventados. Una comparación seria registra identidad real, versión del paquete, herramientas, coste, tokens, tiempos, varias repeticiones y tareas finales independientes.
 
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "^(Write|Edit|MultiEdit|Bash)$",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun \"$HOME/.claude/hooks/pre-edit-audit.ts\"",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "^(Write|Edit|MultiEdit)$",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun \"$HOME/.claude/hooks/post-edit-slop.ts\"",
-            "timeout": 10
-          }
-        ]
-      }
-    ]
-  }
-}
-```
+## Compatibilidad y fuentes
 
----
+Los contratos se contrastaron con [hooks de Antigravity](https://antigravity.google/docs/hooks), [skills](https://antigravity.google/docs/skills), [agentes](https://antigravity.google/docs/subagents) y [paquetes de plugins](https://antigravity.google/docs/build-plugins/). El manifiesto usa descubrimiento de directorios estándar; se eliminaron claves no admitidas. Revalida contra la versión del anfitrión antes de distribuir una actualización. La lista de herramientas de los agentes contiene nombres Antigravity documentados.
 
-## Verificación y Pruebas de Humo (Smoke Testing)
-
-Ejecuta estos comandos desde la raíz del repositorio para comprobar el comportamiento mecánico de los hooks:
-
-```bash
-# 1. Verificar que PreToolUse bloquea ediciones no auditadas (Esperado: exit code 2 / [ARGON-GATE-BLOCK])
-echo '{"tool_name":"edit_file","tool_input":{"path":"plugin.json"},"assistant_message":"Editing file now"}' | bun hooks/pre-edit-audit.ts
-
-# 2. Verificar que PreToolUse aprueba <system_audit> con anclaje léxico real (Esperado: exit code 0)
-echo '{"tool_name":"edit_file","tool_input":{"path":"plugin.json"},"assistant_message":"<system_audit>\nRISK: N0\nEVIDENCE: [plugin.json:3[\"argon-protocols\"]]\nINVARIANT_CHECK: Preserves plugin manifest schema version\n</system_audit>"}' | bun hooks/pre-edit-audit.ts
-
-# 3. Verificar que PreToolUse permite comandos benignos de terminal sin auditoría previa (Esperado: exit code 0)
-echo '{"tool_name":"run_command","tool_input":{"command":"npm test > results.json"}}' | bun hooks/pre-edit-audit.ts
-```
-
----
-
-## Autor y Licencia
-
-* **Arquitecto y Autor:** **Shion** ([@ShionBanned](https://github.com/ShionBanned))
-* **Licencia:** [Licencia MIT](LICENSE)
+Autor original: Shion. Se preservan licencia, recursos y contenido audiovisual del proyecto.
