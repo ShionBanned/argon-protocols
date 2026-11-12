@@ -1,12 +1,13 @@
 {
-  "hooks": {
+  "argon-protocols": {
+    "enabled": true,
     "PreToolUse": [
       {
-        "matcher": "^(write_file|edit_file|write_to_file|replace_file_content|multi_replace_file_content|replace_in_file|MultiEdit|Write|Edit|run_command|bash|Bash|execute_command|run_terminal_cmd)$",
+        "matcher": "^(write_file|edit_file|write_to_file|replace_file_content|multi_replace_file_content|replace_in_file|replace|MultiEdit|Write|Edit|run_command|run_shell_command|bash|Bash|execute_command|run_terminal_cmd)$",
         "hooks": [
           {
             "type": "command",
-            "command": "bun \"{{PLUGIN_DIR}}/hooks/pre-edit-audit.ts\"",
+            "command": "bun \"./hooks/pre-edit-audit.ts\" --host antigravity",
             "timeout": 10
           }
         ]
@@ -14,14 +15,21 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "^(write_file|edit_file|write_to_file|replace_file_content|multi_replace_file_content|replace_in_file|MultiEdit|Write|Edit)$",
+        "matcher": "^(write_file|edit_file|write_to_file|replace_file_content|multi_replace_file_content|replace_in_file|replace|MultiEdit|Write|Edit)$",
         "hooks": [
           {
             "type": "command",
-            "command": "bun \"{{PLUGIN_DIR}}/hooks/post-edit-slop.ts\"",
+            "command": "bun \"./hooks/post-edit-slop.ts\" --host antigravity",
             "timeout": 10
           }
         ]
+      }
+    ],
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "bun \"./hooks/feedback.mjs\" --host antigravity",
+        "timeout": 10
       }
     ]
   }
