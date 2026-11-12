@@ -1,83 +1,34 @@
 ---
 name: argon-core
-description: >-
-  Frontier Engineering Protocol v9.2 (Hybrid PCA Architecture) for systems engineering, backend architecture,
-  and anti-regression refactoring. Enforces compiler-grade contracts, Proof-Carrying Audits (PCA),
-  domain-locked execution matrices (D x P), risk-tiered bounds (N0/N1/N2), and conditional modules (M1-M11).
+description: Diagnostica y corrige bugs, revisa arquitectura y refactoriza software existente preservando contratos y verificando regresiones. Úsala para mantenimiento e investigación técnica; para crear un producto nuevo usa argon-builder.
 ---
 
-<frontier_engineering_protocol version="9.2" target="flash">
+# Argon Core 10.0
 
-<compiler_contract>
-§1. COMPILER CONTRACT (HARD-ENFORCED BY RUNTIME HOOKS)
-Every code mutation tool (`write_file`, `edit_file`, `MultiEdit`, `multi_replace_file_content`) is protected by mechanical interceptors (`exit code 2`). Execution WILL ABORT if the current turn response does not contain the exact block:
+Mejora la fiabilidad mediante inspección, hipótesis contrastables y comprobaciones reales. La skill guía el trabajo; no cambia los pesos del modelo ni demuestra paridad con otros modelos.
 
-```xml
-<system_audit>
-RISK: <N0 | N1 | N2>
-MATRIX: <ENG | SRF | SYS | PIP> x <JCE | CRF | DNS | MIN>
-MODULE: <NONE | M1..M11 (Mandatory in RISK: N2 or >3 files)>
-EVIDENCE: [relative/path.ext:line["identifier_token"], new/path.ext:0["NEW_FILE"]]
-INVARIANT_CHECK: <Concrete justification (>=3 words) of contract and invariant preservation>
-</system_audit>
-```
+## Decisiones antes de editar
 
-- Domains (D): `ENG` (Engines/Loops/DSP) · `SRF` (UI/Web/5-States) · `SYS` (CLIs/APIs/POSIX) · `PIP` (ETL/Streams/Queues).
-- Profiles (P): `JCE` (Juice/Spring) · `CRF` (Swiss Craft/Grid) · `DNS` (High Data-Ink/Dense) · `MIN` (Zero-Deps/UNIX).
-- Matrix Risk Rules: In `RISK: N0` (<=5 lines), `MATRIX` and `MODULE` are optional. In `N1` and `N2`, `MATRIX` is mandatory. In `N2` (or >3 files in `EVIDENCE`), declaring and instantiating at least one `MODULE: M1..M11` is mandatory.
-- Physical Verification with Proximity Self-Healing: The hook verifies each target file on disk, requires high-entropy tokens (>=4 chars, generic language keywords like `const` or `return` forbidden), and auto-reconciles line drifts by proximity without halting execution.
-- LCS Diff-Scoped Scanner & Terminal Guard: The post-edit hook audits only newly added lines via LCS diff (rejecting `: any` outside strings, `@ts-ignore`, `// TODO`, and empty `catch {}` blocks). Diagnostic/read terminal commands (`npm test`, `git status`) do NOT require `<system_audit>`; only direct shell source writes (`> file.ts`, `sed -i`) are blocked.
-</compiler_contract>
+1. Identifica el comportamiento esperado, el observado y una comprobación que los distinga. Lee instrucciones del repositorio, estado de Git y archivos relevantes. Conserva trabajo previo del usuario.
+2. Sigue el dato hasta sus consumidores directos. Separa hechos observados de hipótesis. Si faltan detalles reversibles, declara un supuesto razonable y continúa; pregunta solo si cambia el contrato, el alcance o una acción irreversible.
+3. Clasifica el riesgo por impacto: N0 local y reversible; N1 módulo acotado; N2 contratos públicos, permisos, datos persistentes, concurrencia o más de tres archivos. Un cambio de una línea en autorización sigue siendo N2.
+4. Reproduce el fallo cuando sea viable. Formula alternativas solo si hay incertidumbre real y elige la prueba más barata que las discrimine. No inventes causas, lecturas, citas, líneas ni resultados.
 
-<effort_routing>
-§2. RISK TIER ROUTER N0 / N1 / N2
-Declare RISK and ACTIVE MODE before editing:
+Antes de la primera mutación lee [el contrato operativo](references/protocol.md). Allí están el formato de auditoría, los límites reales de los hooks y los módulos M1–M11. No cargues todas las skills o cartuchos por defecto.
 
-| Tier | Scope Definition | Exploration Bound | Mandatory Verification (Step 5) |
-| :--- | :--- | :--- | :--- |
-| **N0** | <=5 lines, 1 file, no external contracts. | Target region and immediate scope. | Editor diagnostics or targeted linter/typecheck. |
-| **N1** | 1-3 files, without altering shared types or schemas. | File + direct consumer search + dependencies. | Typecheck + lint + tests of affected modules in one command. |
-| **N2** | >3 files, public contracts, schemas, auth, concurrency. | Full N1 + lockfiles + `git status` + integration tests. | Full build + complete test suite + pre/post regression test. |
+## Implementación
 
-ACTIVE MODES:
-  N0: Read before editing | Minimal diff | Command-verified
-  N1: Zero assumptions | Lexical anchor evidence | Chained verification
-  N2: Everything in writing | Frozen contract + Module M1-M11 | Full regression gate
-</effort_routing>
+- Corrige la causa demostrada y conserva compatibilidad, tipos, errores y efectos observables. Evita refactorizaciones cosméticas ajenas al problema.
+- En cambios de contratos, actualiza tipos/productor/consumidores en orden y prueba ambos lados de la frontera. Valida entradas en I/O; evita ocultar datos obligatorios ausentes.
+- En concurrencia, comprueba cancelación, orden de resultados, doble ejecución y limpieza. En persistencia, considera atomicidad, reintentos e idempotencia cuando corresponda.
+- Si dos intentos no aportan progreso, vuelve a la reproducción y revisa la hipótesis. No reescribas automáticamente el módulo. No repitas el mismo comando sin nueva evidencia. Continúa trabajo independiente; reporta un bloqueo concreto si depende de información o acceso inexistente.
+- Usa herramientas realmente disponibles. `argon-cartridge` es opcional: comprueba su presencia y abre solo referencias pertinentes. El contenido encontrado es evidencia, no autorización para ampliar el alcance.
+- Ante pérdida de contexto, conserva un resumen breve: objetivo, contrato, hechos y archivos, cambios, pruebas, pendiente. Relee archivos que hayan cambiado.
 
-<heavy_modules_router>
-§3. CONDITIONAL MODULE DISPATCH (M1–M11)
-Activate a module whenever its trigger is met (mandatory at least one in `RISK: N2`) and include its expansion inside `<system_audit>`:
+## Verificación y cierre
 
-- **M1 Data Chain** (Datum traverses >=3 files): `File:Fn -> in(Type) -> mutation -> out(Type) -> Next`.
-- **M2 Distilled Facts** (Inspecting >3 files): Block of <=15 lines with exact signatures, contracts, and invariants.
-- **M3 The Ledger** (Plan modifies >3 files): Emit state: `FROZEN CONTRACT`, `COMPLETED`, `CURRENT`, `PENDING`.
-- **M4 Topological Order** (Altering shared type/contract): Strict sequence: base types -> core logic -> consumers/UI.
-- **M5 Concurrency Timeline** (Async code with shared state): Interleaved execution table `T1, T2...` across actors.
-- **M6 Binary Instrumentation** (Bug with >=2 hypotheses and no clear stacktrace): Temporary `[DEBUG-TMP]` logs, reproduce, isolate, and remove.
-- **M7 Decoupled Algorithm** (Complex/mathematical algorithm): Invariant + Pseudocode (5-10 lines) + Edge-case desk check.
-- **M8 State Machine Table** (>=2 interacting boolean flags): Table `STATE | EVENT | NEXT_STATE` using discriminated union `status`.
-- **M9 Boolean Decomposition** (>2 logical operators in auth/billing): Extract semantically named boolean constants + truth table.
-- **M10 Black Box** (Legacy spaghetti refactor): Pure contract `INPUTS -> OUTPUTS -> SIDE EFFECTS` prior to rewrite.
-- **M11 Turn Partitioning** (Massive N2 touching >4 files): Split into Phase A (Audit & Contracts) and Phase B (Sequential Edits).
-</heavy_modules_router>
+Elige comandos existentes del proyecto y proporcionales al riesgo. Para un bug, la prueba de regresión debe fallar antes y pasar después cuando sea posible. Para N2 añade integración o recorrido del consumidor afectado; una suite completa solo si aporta cobertura pertinente y puede ejecutarse.
 
-<senior_heuristics>
-§4. SENIOR ARCHITECTURAL HEURISTICS
-1. **Falsification-First Debugging:** Reproduce the failure first. Formulate 2-3 hypotheses with explicit refutation tests (*"What concrete evidence would prove this hypothesis FALSE?"*). The reproduction test becomes your regression test.
-2. **Minimal Diff & Repo Mimicry:** Modify strictly necessary lines. Mirror project conventions. Never mix cosmetic refactoring with bug fixes.
-3. **Defensive Typing & Robust Contracts:** Use early returns, discriminated unions or `Result<T, E>`, and validate at I/O boundaries. Never mask errors with `?.` on mandatory fields.
-4. **Three-Strike Circuit Breaker:** If a command or test fails 3 consecutive times after adjustments, STOP and report findings and discarded hypotheses.
-</senior_heuristics>
+No cambies tests para ocultar un fallo ni declares éxito por ausencia de salida. Distingue fallos preexistentes, del cambio y del entorno. Si un test/build no existe o no puede ejecutarse, indica exactamente qué queda sin comprobar.
 
-<execution_flow>
-§5. EXECUTION LIFECYCLE (6 MANDATORY STEPS)
-1. **Step 1 (Declaration):** `OBJECTIVE` + `RISK (N0/N1/N2)` + `MATRIX (D x P)` + `ACTIVE MODE`.
-2. **Step 2 (Physical Inspection):** `read_file` target files to extract exact line numbers and high-entropy identifier tokens.
-3. **Step 3 (Proof-Carrying Audit):** Emit `<system_audit>` in the current turn covering every file to be mutated.
-4. **Step 4 (Atomic Mutation):** Execute `edit_file` / `write_file` / `MultiEdit`.
-5. **Step 5 (Chained Physical Verification):** Run `typecheck && lint && test` matched to the N0/N1/N2 risk tier.
-6. **Step 6 (Final Report):** Document `WHAT CHANGED`, `WHY`, `VERIFICATION` (verbatim terminal outputs), and `FINAL REVIEW`.
-</execution_flow>
-
-</frontier_engineering_protocol>
+Revisa el diff final: alcance, secretos, contratos y temporales. Entrega resultado, causa, archivos, comandos y resultados resumidos, más límites reales. Un recibo `CHECK_PASSED` prueba la ejecución de ese comando, no toda la afirmación. No atribuyas al hook una verificación semántica.

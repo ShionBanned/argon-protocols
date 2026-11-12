@@ -1,77 +1,36 @@
 ---
 name: argon-director
-description: >-
-  Frontier Director Protocol v9.2 (Hybrid PCA Architecture) for technical audiovisual engineering,
-  motion graphics, and video post-production (FFmpeg, Remotion, MoviePy, Whisper).
-  Enforces Proof-Carrying Audits (PCA) with binary magic-byte verification, Media Matrix (D x P),
-  acoustic engineering (LUFS/ducking), and multimodal physical verification (ffprobe, keyframe extraction).
+description: Dirige composiciones audiovisuales, edición programática y posproducción con FFmpeg, Remotion o MoviePy cuando el usuario pide argon-director expresamente. Comprueba medios, sincronización y resultados; no se activa por solicitar el conjunto de skills Remotion.
 ---
 
-<frontier_video_protocol version="9.2" target="flash">
+# Argon Director 10.0
 
-<compiler_contract>
-§1. COMPILER CONTRACT (HARD-ENFORCED BY RUNTIME HOOKS)
-Every composition or script editing tool (`write_file`, `edit_file`, `MultiEdit`) is protected by mechanical interceptors (`exit code 2`). Execution WILL ABORT if the current turn response does not contain the exact block:
+Respeta el encargo creativo, conserva originales y verifica el medio final. Mantén la preferencia local de activación explícita de esta skill.
 
-```xml
-<system_audit>
-RISK: <N0 | N1 | N2>
-MATRIX: <DOC | PED | KEY | SHRT> x <BST | KYN | CIN | RAW>
-EVIDENCE: [composition.tsx:24["VideoTimeline"], new_script.ts:0["NEW_FILE"]]
-INVARIANT_CHECK: <Concrete justification (>=3 words) of sub-frame sync, source preservation, and LUFS bounds>
-</system_audit>
-```
+## Preparación
 
-- Script Coverage & Binary Verification (`MEDIA_ASSET`): `EVIDENCE` must cover the code or script file being edited (`script.ts:line["token"]` or `script.ts:0["NEW_FILE"]`). Optionally, binary multimedia assets can be anchored as `source.mp4:0["MEDIA_ASSET"]`, prompting the hook to verify physical presence, non-zero byte size, and binary magic-byte headers (`ftyp`, `RIFF`, `ID3`, `PNG`, `JPEG`, `fLaC`, `EBML`) without reading the asset as UTF-8 text.
-- Untouchable Sources: All raw multimedia source assets are strictly read-only. Overwriting raw assets is prohibited.
-- Silencing Prohibited: `-loglevel quiet` and redirecting render errors to `/dev/null` are strictly forbidden.
-</compiler_contract>
+- Identifica destino, duración o rango, orientación, fuentes y tratamiento de audio. Usa valores reversibles razonables si faltan detalles; pregunta antes de un render costoso cuando una decisión esencial cambiaría todo el resultado.
+- Comprueba herramientas/versiones disponibles y permisos de los recursos. Lee solo las referencias de la herramienta elegida; no actives toda una suite por usar un componente.
+- Inspecciona entradas con `ffprobe`: streams, duración de formato/streams, resolución, rotación, sample rate, time base y FPS racional. Distingue VFR de CFR. La firma de cabecera solo identifica formato; no prueba integridad.
+- Lee [el contrato operativo](references/protocol.md) antes de editar scripts. Usa N0 para un remux sencillo; N1 para composición acotada; N2 para pipeline completo o cambios de sincronización complejos. N2 también requiere MODULE con una acción concreta.
 
-<media_matrix>
-§2. AUDIOVISUAL TAXONOMY: DIRECTION MATRIX (D × P)
-Classify all audiovisual tasks under `MATRIX: <D> x <P>` combining Content Domain (D) with Aesthetic Profile (P):
+## Dirección y realización
 
-### 2.1 Content Domain Axis D (Purpose & Format)
-| Code | Domain | Target Format | Hard Domain Invariants (I_D) |
-| :--- | :--- | :--- | :--- |
-| `SHRT` | **Shorts / Social** | 9:16 vertical (1080x1920), TikTok/Reels/Shorts | `hook_time <= 2.5s` · mandatory kinetic captions · zero static intro |
-| `PED` | **Pedagogy / Tutorial** | 16:9 horizontal, terminal screencast, tech demos | `readability == high` · cursor/code zoom anchoring · absorption pacing |
-| `KEY` | **Keynote / Launch** | 16:9 / 21:9 ultra-HD, product launch showcase | `bento_grid == true` · negative space >= 40% · fluid Bézier motion |
-| `DOC` | **Documentary** | 16:9 / 2.39:1 scope, archival, narrative | `color_grading_consistent` · ambient silence respect · sustained framing |
+Dominios: `SHRT` social, `PED` educativo, `KEY` presentación y `DOC` documental. Perfiles: `BST` dinámico, `KYN` limpio, `CIN` cinematográfico y `RAW` continuo. Son orientaciones adaptables: no impongas cortes, subtítulos cinéticos, un layout o una proporción contra el encargo.
 
-### 2.2 Aesthetic Profile Axis P (Pacing, Typography & Acoustic Design)
-| Code | Profile | Pacing Vector | Acoustic & Visual Standards (M_P) |
-| :--- | :--- | :--- | :--- |
-| `BST` | **Beast (Hyper-Pacing)** | Pattern Interrupt every 2.5–3.5s | Pauses >0.25s pruned · dense sound design (whooshes, risers) · kinetic pop-in |
-| `KYN` | **Keynote Craft (Clean)** | Organic transitions with breathing room | Sub-bass swells · subtle micro-SFX · geometric typography · zero neon |
-| `CIN` | **Cinematic** | Pacing guided by narrative cadence | Wide dynamic range · soft audio crossfades · neutral color grading |
-| `RAW` | **Raw (Live Demo)** | Zero artificial cuts | Pristine voice audio · hum/noise removal · continuous terminal execution flow |
+- Mantén fuentes en rutas de solo lectura; renderiza a otra ruta y rechaza que entrada y salida resuelvan al mismo archivo, incluso por enlaces. No uses sobreescritura automática sobre fuentes ni borres originales.
+- Construye el timeline con unidades explícitas, FPS racional y origen común. Distingue fotogramas de muestras de audio. Si hay deriva, revisa time base y remuestreo antes de acumular offsets.
+- `-c copy` no garantiza cortes exactos ni compatibilidad entre códecs/contenedores; verifica keyframes y streams. Recodifica cuando el contrato exija precisión que el remux no ofrece.
+- Reserva tiempo para preview de un fragmento representativo antes del render largo. Mantén stderr observable y comprueba la finalización real de trabajos asíncronos.
+- Mezcla según el destino: mide LUFS integrados y true peak en dBTP. Sin una especificación, -16 a -14 LUFS y un techo de -1 dBTP pueden ser un punto de partida para voz web, no una obligación universal. Si normalizas a un objetivo, mide de nuevo la salida codificada.
+- Ajusta ducking a inteligibilidad y material, no a un valor fijo de dBFS. En audio silencioso o sin stream, la medición LUFS puede ser no aplicable; no inventes un número.
 
-### 2.3 Canonical Mappings:
-- Viral Short -> `SHRT x BST` | Technical Tutorial / CLI Demo -> `PED x RAW` or `PED x KYN` | Product Launch -> `KEY x KYN` | Documentary -> `DOC x CIN`.
-</media_matrix>
+## Validación de entrega
 
-<effort_routing>
-§3. RISK TIER ROUTER N0 / N1 / N2
-- **N0 (Trivial):** Lossless remux (`-c copy`), container conversion, or 1-parameter tweak. Verification: Output `ffprobe`.
-- **N1 (Standard):** 2-3 layer composition, animated subtitles, Remotion/MoviePy script. Verification: `ffprobe` + 3 keyframe extractions + LUFS measurement.
-- **N2 (High Risk):** Multi-layer end-to-end pipeline (Whisper -> cut -> mix -> color -> final render). Verification: Block-level previews + final render + `ffprobe` + keyframe audit.
-</effort_routing>
+Inspecciona el archivo final con `ffprobe -v error -show_format -show_streams -of json`. Comprueba existencia, tamaño, streams esperados, duración y formato contra el contrato.
 
-<senior_heuristics>
-§4. SENIOR AUDIOVISUAL HEURISTICS
-1. **Acoustic Engineering (LUFS & Ducking):** Normalize dialogue to -1 dBFS True Peak and integrated loudness between -14 and -16 LUFS. Auto-duck background music to -24 dBFS during speech with 300ms smooth recovery.
-2. **Mandatory Multimodal Physical Verification (Step 5):** No render is marked successful solely by `exit code 0`. Always run `ffprobe -v error -show_entries stream=codec_name,width,height,duration,r_frame_rate -of json output.mp4` and extract witness keyframes (`ffmpeg -ss <ts> -i output.mp4 -frames:v 1 -q:v 2 preview.jpg`) at scene transitions.
-</senior_heuristics>
+Para vídeo, extrae e inspecciona fotogramas representativos: principio, cambios de escena, texto, punto medio y final según la duración. Para audio, escucha muestras si hay herramienta disponible y verifica loudness/picos cuando sea parte del encargo. Para una pieza solo sonora no extraigas fotogramas; para vídeo mudo no exijas LUFS.
 
-<execution_flow>
-§5. EXECUTION LIFECYCLE (6 MANDATORY STEPS)
-1. **Step 1 (Declaration):** `OBJECTIVE` + `MATRIX: <D> x <P>` + `RISK (N0/N1/N2)` + `ACTIVE MODE`.
-2. **Step 2 (Preliminary Inspection):** Run `ffprobe` on raw media assets and inspect existing render scripts.
-3. **Step 3 (Proof-Carrying Audit):** Emit `<system_audit>` covering scripts to edit/create (and optionally `source.mp4:0["MEDIA_ASSET"]`).
-4. **Step 4 (Editing / Composition):** Generate or modify the render script with zero placeholders.
-5. **Step 5 (Multimodal Verification):** Execute render followed by `ffprobe` + keyframe extraction + acoustic check.
-6. **Step 6 (Final Report):** Verified empirical metrics (duration, resolution, FPS, codec, timestamps).
-</execution_flow>
+En trabajos relevantes, realiza además una decodificación de comprobación (`ffmpeg -v error -i output.mp4 -f null -`) y revisa sus errores. La calidad visual y la sincronía no se prueban solo con exit code 0.
 
-</frontier_video_protocol>
+Entrega ruta, métricas observadas, previews y comprobaciones realizadas. Distingue inspección técnica de escucha/visionado. Un recibo no sustituye esa revisión.
